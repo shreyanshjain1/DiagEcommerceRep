@@ -36,6 +36,7 @@ $grand = (float)($q['total'] ?? ($subtotal + $shipping + $over + $other + $inst)
 $wa = (string)setting('contact_whatsapp', '09453462354');
 $msg = 'Hi! Following up on RFQ ' . $q['quote_number'] . '.';
 $history = rfq_history($pdo, (int)$q['id']);
+$revisions = quote_revisions($pdo, (int)$q['id']);
 ?>
 
 <div class="page-head">
@@ -117,6 +118,25 @@ $history = rfq_history($pdo, (int)$q['id']);
       <a class="btn secondary" href="<?php echo url('pages/quote-pdf.php?id='.$q['id']); ?>" target="_blank" rel="noopener"><?php echo $isQuoted ? 'Download Quotation PDF' : 'Download RFQ PDF'; ?></a>
       <a class="btn secondary" target="_blank" rel="noopener" href="<?php echo e(wa_link($wa, $msg)); ?>">Chat on WhatsApp</a>
       <a class="btn ghost" href="<?php echo url('pages/quotes.php'); ?>">Back</a>
+    </div>
+  </div>
+
+    <h3 class="m0">Quote Versions</h3>
+    <div class="mt16" style="display:flex;flex-direction:column;gap:10px">
+      <?php if($revisions): ?>
+        <?php foreach($revisions as $rev): ?>
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff">
+            <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:#64748b;margin-bottom:6px">
+              <span>Version <?php echo (int)$rev['version_no']; ?></span>
+              <span><?php echo e($rev['created_at']); ?></span>
+            </div>
+            <div style="font-weight:800;margin-bottom:4px">Quoted Total: ₱<?php echo number_format((float)($rev['total'] ?? 0),2); ?></div>
+            <div class="muted" style="white-space:pre-line;line-height:1.55"><?php echo e($rev['reason'] ?: 'Pricing was revised by our team.'); ?></div>
+          </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="muted">No earlier quote versions recorded yet.</div>
+      <?php endif; ?>
     </div>
   </div>
 

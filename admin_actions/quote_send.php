@@ -14,6 +14,7 @@ if ($id <= 0) { http_response_code(400); exit('Bad request'); }
 
 $admin_notes = trim((string)($_POST['admin_notes'] ?? ''));
 $timeline_note = trim((string)($_POST['timeline_note'] ?? ''));
+$revision_reason = trim((string)($_POST['revision_reason'] ?? ''));
 
 $shipping_fee_in = is_numeric($_POST['shipping_fee'] ?? null) ? (float)$_POST['shipping_fee'] : null;
 $overhead_in = is_numeric($_POST['overhead_charge'] ?? null) ? (float)$_POST['overhead_charge'] : null;
@@ -34,6 +35,15 @@ try {
   $beforeStmt = $pdo->prepare("SELECT id, quote_number, status, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, sent_at, sent_to, sent_by, total, updated_at FROM quotes WHERE id=:id");
   $beforeStmt->execute([':id'=>$id]);
   $before = $beforeStmt->fetch(PDO::FETCH_ASSOC);
+
+  $snapshotId = null;
+  $alreadyQuoted = in_array((string)($before['status'] ?? ''), ['quoted','closed'], true) || !empty($before['sent_at']);
+  if ($alreadyQuoted) {
+    $snapshotId = create_quote_revision($pdo, $id, $revision_reason !== '' ? $revision_reason : 'Pre-send quotation revision snapshot', [
+      'trigger' => 'admin_quote_send',
+      'timeline_note' => $timeline_note,
+    ]);
+  }
 
   $up = $pdo->prepare("UPDATE quote_items SET unit_price=:p WHERE id=:id AND quote_id=:qid");
   foreach($item_prices as $itemId => $price){
@@ -89,6 +99,8 @@ try {
     'sent_to' => $sentTo,
     'updated_item_prices' => array_map('intval', array_keys($item_prices)),
     'timeline_note' => $timeline_note,
+    'revision_reason' => $revision_reason,
+    'quote_revision_id' => $snapshotId,
   ]);
 
   rfq_timeline_log($pdo, $id, 'quote_sent', $before['status'] ?? null, $after['status'] ?? null, $timeline_note !== '' ? $timeline_note : 'Formal quotation sent to customer.', [
@@ -96,6 +108,7 @@ try {
     'sent_to' => $sentTo,
     'updated_item_prices' => array_map('intval', array_keys($item_prices)),
     'source' => 'admin_actions/quote_send.php',
+    'quote_revision_id' => $snapshotId,
   ]);
 
   $pdo->commit();

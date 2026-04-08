@@ -286,3 +286,98 @@ function rfq_history(PDO $pdo, int $quoteId): array {
     return [];
   }
 }
+
+
+function quote_revision_number(PDO $pdo, int $quoteId): int {
+  try {
+    $stmt = $pdo->prepare("SELECT COALESCE(MAX(version_no), 0) FROM quote_revisions WHERE quote_id=:quote_id");
+    $stmt->execute([':quote_id' => $quoteId]);
+    return ((int)$stmt->fetchColumn()) + 1;
+  } catch (Throwable $e) {
+    error_log('quote_revision_number failed: ' . $e->getMessage());
+    return 1;
+  }
+}
+
+function create_quote_revision(PDO $pdo, int $quoteId, string $reason = '', array $meta = []): ?int {
+  try {
+    $quoteStmt = $pdo->prepare("SELECT * FROM quotes WHERE id=:id LIMIT 1");
+    $quoteStmt->execute([':id' => $quoteId]);
+    $quote = $quoteStmt->fetch(PDO::FETCH_ASSOC);
+    if (!$quote) return null;
+
+    $itemsStmt = $pdo->prepare("SELECT qi.*, p.name AS product_name, p.sku AS product_sku, p.brand AS product_brand FROM quote_items qi LEFT JOIN products p ON p.id = qi.product_id WHERE qi.quote_id=:quote_id ORDER BY qi.id ASC");
+    $itemsStmt->execute([':quote_id' => $quoteId]);
+    $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    $versionNo = quote_revision_number($pdo, $quoteId);
+
+    $insert = $pdo->prepare("INSERT INTO quote_revisions(quote_id,version_no,reason,status_snapshot,subtotal,shipping_fee,overhead_charge,other_expenses,installation_expenses,total,valid_until,lead_time,warranty,payment_terms,admin_notes,meta_json,created_by,created_at) VALUES(:quote_id,:version_no,:reason,:status_snapshot,:subtotal,:shipping_fee,:overhead_charge,:other_expenses,:installation_expenses,:total,:valid_until,:lead_time,:warranty,:payment_terms,:admin_notes,:meta_json,:created_by,NOW())");
+    $insert->execute([
+      ':quote_id' => $quoteId,
+      ':version_no' => $versionNo,
+      ':reason' => $reason !== '' ? $reason : null,
+      ':status_snapshot' => $quote['status'] ?? null,
+      ':subtotal' => $quote['subtotal'] ?? 0,
+      ':shipping_fee' => $quote['shipping_fee'] ?? 0,
+      ':overhead_charge' => $quote['overhead_charge'] ?? 0,
+      ':other_expenses' => $quote['other_expenses'] ?? 0,
+      ':installation_expenses' => $quote['installation_expenses'] ?? 0,
+      ':total' => $quote['total'] ?? 0,
+      ':valid_until' => $quote['valid_until'] ?? null,
+      ':lead_time' => $quote['lead_time'] ?? null,
+      ':warranty' => $quote['warranty'] ?? null,
+      ':payment_terms' => $quote['payment_terms'] ?? null,
+      ':admin_notes' => $quote['admin_notes'] ?? null,
+      ':meta_json' => audit_json($meta),
+      ':created_by' => current_user_id(),
+    ]);
+    $revisionId = (int)$pdo->lastInsertId();
+
+    if ($items) {
+      $itemInsert = $pdo->prepare("INSERT INTO quote_revision_items(revision_id,quote_item_id,product_id,product_name,sku,brand,qty,unit_price,line_total,created_at) VALUES(:revision_id,:quote_item_id,:product_id,:product_name,:sku,:brand,:qty,:unit_price,:line_total,NOW())");
+      foreach ($items as $item) {
+        $qty = (int)($item['qty'] ?? 0);
+        $unit = (float)($item['unit_price'] ?? 0);
+        $itemInsert->execute([
+          ':revision_id' => $revisionId,
+          ':quote_item_id' => (int)($item['id'] ?? 0),
+          ':product_id' => !empty($item['product_id']) ? (int)$item['product_id'] : null,
+          ':product_name' => $item['product_name'] ?? 'Unknown product',
+          ':sku' => $item['product_sku'] ?? null,
+          ':brand' => $item['product_brand'] ?? null,
+          ':qty' => $qty,
+          ':unit_price' => $unit,
+          ':line_total' => $qty * $unit,
+        ]);
+      }
+    }
+
+    return $revisionId;
+  } catch (Throwable $e) {
+    error_log('create_quote_revision failed: ' . $e->getMessage());
+    return null;
+  }
+}
+
+function quote_revisions(PDO $pdo, int $quoteId): array {
+  try {
+    $stmt = $pdo->prepare("SELECT r.*, u.name AS created_by_name, u.email AS created_by_email FROM quote_revisions r LEFT JOIN users u ON u.id = r.created_by WHERE r.quote_id=:quote_id ORDER BY r.version_no DESC, r.id DESC");
+    $stmt->execute([':quote_id' => $quoteId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+  } catch (Throwable $e) {
+    error_log('quote_revisions failed: ' . $e->getMessage());
+    return [];
+  }
+}
+
+function quote_revision_items(PDO $pdo, int $revisionId): array {
+  try {
+    $stmt = $pdo->prepare("SELECT * FROM quote_revision_items WHERE revision_id=:revision_id ORDER BY id ASC");
+    $stmt->execute([':revision_id' => $revisionId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+  } catch (Throwable $e) {
+    error_log('quote_revision_items failed: ' . $e->getMessage());
+    return [];
+  }
+}

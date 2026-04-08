@@ -13,6 +13,7 @@ $allowed = ['draft','submitted','quoted','closed'];
 if(!in_array($status,$allowed,true)) $status = 'submitted';
 $admin_notes = trim((string)($_POST['admin_notes'] ?? ''));
 $timeline_note = trim((string)($_POST['timeline_note'] ?? ''));
+$revision_reason = trim((string)($_POST['revision_reason'] ?? ''));
 
 $shipping_fee_in = is_numeric($_POST['shipping_fee'] ?? null) ? (float)$_POST['shipping_fee'] : null;
 $overhead_in = is_numeric($_POST['overhead_charge'] ?? null) ? (float)$_POST['overhead_charge'] : null;
@@ -36,6 +37,16 @@ try {
   if (!$before) {
     throw new RuntimeException('RFQ not found');
   }
+
+  $shouldSnapshot = in_array((string)($before['status'] ?? ''), ['quoted','closed'], true) || (float)($before['total'] ?? 0) > 0;
+  $snapshotId = null;
+  if ($shouldSnapshot) {
+    $snapshotId = create_quote_revision($pdo, $id, $revision_reason !== '' ? $revision_reason : 'Pre-update quote snapshot', [
+      'trigger' => 'admin_rfq_update',
+      'timeline_note' => $timeline_note,
+    ]);
+  }
+
 
   $up = $pdo->prepare("UPDATE quote_items SET unit_price=:p WHERE id=:id AND quote_id=:qid");
   foreach($item_prices as $itemId => $price){
@@ -88,6 +99,8 @@ try {
     'status_changed' => $statusChanged,
     'updated_item_prices' => array_map('intval', array_keys($item_prices)),
     'timeline_note' => $timeline_note,
+    'revision_reason' => $revision_reason,
+    'quote_revision_id' => $snapshotId,
   ]);
 
   if ($statusChanged || $timeline_note !== '') {
@@ -95,6 +108,7 @@ try {
       'quote_number' => $after['quote_number'] ?? null,
       'updated_item_prices' => array_map('intval', array_keys($item_prices)),
       'source' => 'admin_actions/rfq_update.php',
+      'quote_revision_id' => $snapshotId,
     ]);
   }
 

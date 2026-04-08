@@ -40,6 +40,7 @@ $other = (float)($q['other_expenses'] ?? 0);
 $inst  = (float)($q['installation_expenses'] ?? 0);
 $computedTotal = $computedSubtotal + $ship + $over + $other + $inst;
 $history = rfq_history($pdo, (int)$q['id']);
+$revisions = quote_revisions($pdo, (int)$q['id']);
 ?>
 
 <style>
@@ -269,6 +270,10 @@ $history = rfq_history($pdo, (int)$q['id']);
       <div class="full">
         <label for="timeline_note">Timeline Note</label>
         <textarea id="timeline_note" name="timeline_note" rows="4" placeholder="Optional: add a visible internal timeline note for this RFQ update."></textarea>
+      </div>
+      <div class="full">
+        <label for="revision_reason">Revision Note</label>
+        <textarea id="revision_reason" name="revision_reason" rows="3" placeholder="Optional: explain why this quote version changed (pricing refresh, supplier cost update, freight update, revised scope, etc.)"></textarea>
       </div>
     </div>
 
