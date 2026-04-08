@@ -1,14 +1,18 @@
 IMPORT INSTRUCTIONS (IMPORTANT)
 
+FRESH SETUP
 1) In cPanel, create a MySQL database + user and grant ALL PRIVILEGES to that DB.
-2) Edit config/db.php to match your DB credentials (DB_HOST, DB_NAME, DB_USER, DB_PASS).
-3) In phpMyAdmin:
-   - Select your database on the left
-   - Go to Import
-   - Choose database.sql from this project
-   - Click Go
+2) Edit config/db.php or config/db.local.php to match your DB credentials.
+3) In phpMyAdmin, use the Import tab and upload database.sql.
+4) After import, open /pages/products.php to confirm the catalog loads.
 
-If you see an error that starts with the word "Error", it usually means you copied the phpMyAdmin error text into the SQL editor.
-Use the Import tab and upload the database.sql file directly.
+EXISTING DATABASE UPGRADE
+1) If your database already exists and you want the consolidated upgrade path, import:
+   - database_patch_all.sql
+2) This file merges the major schema changes from the old database_patch_*.sql files into one upgrade bundle.
+3) Keep database.sql as the fresh-install baseline and database_patch_all.sql as the single upgrade script.
 
-After import, open /pages/products.php — you should see the full catalog.
+IMPORTANT NOTES
+- Use the phpMyAdmin Import tab instead of pasting large SQL files into the SQL editor.
+- The consolidated patch is meant for older databases being upgraded toward the current repo structure.
+- For recruiter-facing GitHub presentation, using one upgrade bundle is cleaner than showing many scattered patch files.

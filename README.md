@@ -102,6 +102,8 @@ The project now includes stronger business-oriented tables such as:
 - `company_account_addresses`
 - `suppliers`
 - password reset support tables
+
+For cleaner maintenance and recruiter-facing repo presentation, the schema upgrade path is now also bundled into a single `database_patch_all.sql` file for existing databases.
 ---
 
 ## Security and integrity improvements
@@ -145,7 +147,7 @@ assets/                 Frontend assets
 uploads/                Uploaded product / quote documents
 .github/                Workflows, templates, repo governance
 database.sql            Full base schema
-*.sql patches           Incremental schema upgrades
+database_patch_all.sql Consolidated upgrade bundle for existing databases
 ```
 
 ---
@@ -161,7 +163,7 @@ database.sql            Full base schema
 6. Log in with your seeded admin account if your imported schema includes it.
 
 ### Existing database patch flow
-If you are applying incremental upgrades rather than reimporting the base schema, apply the included `database_patch_*.sql` files in order as needed.
+If you are upgrading an older existing database instead of doing a fresh import, use `database_patch_all.sql` as the single consolidated upgrade bundle.
 
 ---
 
