@@ -15,10 +15,11 @@ if ($msg === 'submitted') $flash = 'RFQ submitted successfully. Our admin team w
 elseif ($msg === 'draft') $flash = 'RFQ draft saved. You can submit it later.';
 else $flash = '';
 
-$st = $pdo->prepare("SELECT id, quote_number, status, approval_status, approval_decided_at, created_at, updated_at
-                     FROM quotes
-                     WHERE user_id=:u
-                     ORDER BY updated_at DESC
+$st = $pdo->prepare("SELECT q.id, q.quote_number, q.status, q.created_at, q.updated_at,
+                            (SELECT COUNT(*) FROM quote_documents d WHERE d.quote_id = q.id AND d.is_customer_visible = 1) AS document_count
+                     FROM quotes q
+                     WHERE q.user_id=:u
+                     ORDER BY q.updated_at DESC
                      LIMIT 200");
 $st->execute([':u'=>$uid]);
 $rfqs = $st->fetchAll();
@@ -40,18 +41,18 @@ $rfqs = $st->fetchAll();
     <tr>
       <th>RFQ #</th>
       <th>Status</th>
-      <th>Approval</th>
       <th>Submitted</th>
       <th>Updated</th>
+      <th>Docs</th>
       <th></th>
     </tr>
     <?php foreach($rfqs as $r): ?>
       <tr>
         <td><strong><?php echo e($r['quote_number']); ?></strong></td>
         <td><span class="tag"><?php echo e($r['status']); ?></span></td>
-        <td><span class="tag"><?php echo e(quote_approval_label((string)($r['approval_status'] ?? 'pending'))); ?></span><?php if(!empty($r['approval_decided_at'])): ?><div class="muted" style="font-size:12px;margin-top:4px"><?php echo e($r['approval_decided_at']); ?></div><?php endif; ?></td>
         <td><?php echo e($r['created_at']); ?></td>
         <td><?php echo e($r['updated_at']); ?></td>
+        <td><?php echo (int)($r['document_count'] ?? 0); ?></td>
         <td style="text-align:right">
           <a class="btn secondary" href="<?php echo url('pages/rfq-view.php?id='.$r['id']); ?>">Open</a>
           <a class="btn ghost" href="<?php echo url('actions/quote.php?action=reorder&id='.$r['id']); ?>">Reorder</a>

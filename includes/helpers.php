@@ -62,85 +62,6 @@ function redirect(string $to): never {
   exit;
 }
 
-
-function redirect_with_query(string $path, array $params = []): never {
-  $query = http_build_query(array_filter($params, static fn($v) => $v !== null && $v !== ''));
-  $target = url($path);
-  if ($query !== '') {
-    $target .= (strpos($target, '?') === false ? '?' : '&') . $query;
-  }
-  header('Location: ' . $target);
-  exit;
-}
-
-
-function qparam(string $key, $default = null) {
-  return $_GET[$key] ?? $default;
-}
-
-function page_param(string $key = 'page'): int {
-  $value = (int)($_GET[$key] ?? 1);
-  return $value > 0 ? $value : 1;
-}
-
-function pagination_meta(int $total, int $perPage, int $page): array {
-  $perPage = max(1, $perPage);
-  $totalPages = max(1, (int)ceil($total / $perPage));
-  $page = max(1, min($page, $totalPages));
-  $offset = ($page - 1) * $perPage;
-  return [
-    'total' => $total,
-    'per_page' => $perPage,
-    'page' => $page,
-    'total_pages' => $totalPages,
-    'offset' => $offset,
-    'from' => $total > 0 ? $offset + 1 : 0,
-    'to' => min($total, $offset + $perPage),
-  ];
-}
-
-function build_query_url(array $overrides = []): string {
-  $query = $_GET;
-  foreach ($overrides as $k => $v) {
-    if ($v === null || $v === '') unset($query[$k]);
-    else $query[$k] = $v;
-  }
-  $path = strtok((string)($_SERVER['REQUEST_URI'] ?? ''), '?') ?: '';
-  $qs = http_build_query($query);
-  return $path . ($qs !== '' ? '?' . $qs : '');
-}
-
-function pagination_links(array $meta, int $window = 2): string {
-  if (($meta['total_pages'] ?? 1) <= 1) return '';
-  $page = (int)$meta['page'];
-  $totalPages = (int)$meta['total_pages'];
-  $start = max(1, $page - $window);
-  $end = min($totalPages, $page + $window);
-  $html = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px">';
-  if ($page > 1) {
-    $html .= '<a class="btn secondary" href="' . e(build_query_url(['page' => $page - 1])) . '">Prev</a>';
-  }
-  for ($i = $start; $i <= $end; $i++) {
-    $class = $i === $page ? 'btn' : 'btn secondary';
-    $html .= '<a class="' . $class . '" href="' . e(build_query_url(['page' => $i])) . '">' . $i . '</a>';
-  }
-  if ($page < $totalPages) {
-    $html .= '<a class="btn secondary" href="' . e(build_query_url(['page' => $page + 1])) . '">Next</a>';
-  }
-  $html .= '</div>';
-  return $html;
-}
-
-function admin_temp_password(int $length = 12): string {
-  $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
-  $max = strlen($alphabet) - 1;
-  $out = '';
-  for ($i = 0; $i < $length; $i++) {
-    $out .= $alphabet[random_int(0, $max)];
-  }
-  return $out;
-}
-
 function current_user_id(): ?int {
   return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
 }
@@ -215,187 +136,209 @@ function track_viewed(int $pid): void {
   $_SESSION['recent'] = array_slice(array_values(array_unique(array_map('intval', $_SESSION['recent']))), 0, 12);
 }
 
-
-// --- Audit logging ---
-function client_ip(): string {
-  $keys = ['HTTP_CF_CONNECTING_IP','HTTP_X_FORWARDED_FOR','REMOTE_ADDR'];
-  foreach ($keys as $k) {
-    $v = trim((string)($_SERVER[$k] ?? ''));
-    if ($v === '') continue;
-    if ($k === 'HTTP_X_FORWARDED_FOR') {
-      $parts = array_map('trim', explode(',', $v));
-      return (string)($parts[0] ?? '');
-    }
-    return $v;
+function ensure_storage_dir(string $relativeDir): string {
+  $relativeDir = trim(str_replace('\\', '/', $relativeDir), '/');
+  $full = realpath(__DIR__ . '/..');
+  if ($full === false) {
+    throw new RuntimeException('Unable to resolve application root');
   }
-  return '';
-}
-
-function audit_json($value): ?string {
-  if ($value === null) return null;
-  $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-  return $json === false ? null : $json;
-}
-
-function audit_log(PDO $pdo, string $entityType, int $entityId, string $action, $before = null, $after = null, array $meta = []): void {
-  try {
-    $stmt = $pdo->prepare("INSERT INTO audit_logs(user_id,entity_type,entity_id,action,before_json,after_json,meta_json,ip_address,user_agent,created_at) VALUES(:user_id,:entity_type,:entity_id,:action,:before_json,:after_json,:meta_json,:ip_address,:user_agent,NOW())");
-    $stmt->execute([
-      ':user_id' => current_user_id(),
-      ':entity_type' => $entityType,
-      ':entity_id' => $entityId,
-      ':action' => $action,
-      ':before_json' => audit_json($before),
-      ':after_json' => audit_json($after),
-      ':meta_json' => audit_json($meta),
-      ':ip_address' => substr(client_ip(), 0, 64),
-      ':user_agent' => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
-    ]);
-  } catch (Throwable $e) {
-    error_log('audit_log failed: ' . $e->getMessage());
+  $target = $full . '/' . $relativeDir;
+  if (!is_dir($target) && !mkdir($target, 0775, true) && !is_dir($target)) {
+    throw new RuntimeException('Unable to create storage directory: ' . $relativeDir);
   }
+  return $target;
 }
 
+function quote_document_title(array $quote, string $kind = 'Quotation Snapshot'): string {
+  $number = (string)($quote['quote_number'] ?? 'Quote');
+  return trim($kind . ' - ' . $number);
+}
 
-function rfq_timeline_log(PDO $pdo, int $quoteId, string $eventType, ?string $fromStatus = null, ?string $toStatus = null, string $note = '', array $meta = []): void {
-  try {
-    $stmt = $pdo->prepare("INSERT INTO quote_status_history(quote_id, event_type, from_status, to_status, note, meta_json, acted_by, ip_address, user_agent, created_at) VALUES(:quote_id,:event_type,:from_status,:to_status,:note,:meta_json,:acted_by,:ip_address,:user_agent,NOW())");
-    $stmt->execute([
-      ':quote_id' => $quoteId,
-      ':event_type' => substr($eventType, 0, 50),
-      ':from_status' => $fromStatus !== '' ? $fromStatus : null,
-      ':to_status' => $toStatus !== '' ? $toStatus : null,
-      ':note' => $note !== '' ? $note : null,
-      ':meta_json' => audit_json($meta),
-      ':acted_by' => current_user_id(),
-      ':ip_address' => substr(client_ip(), 0, 64),
-      ':user_agent' => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
-    ]);
-  } catch (Throwable $e) {
-    error_log('rfq_timeline_log failed: ' . $e->getMessage());
+function quote_public_download_url(int $quoteId, int $documentId): string {
+  return url('pages/quote-document-download.php?id=' . $quoteId . '&doc=' . $documentId);
+}
+
+function get_quote_documents(PDO $pdo, int $quoteId, bool $customerVisibleOnly = false): array {
+  $sql = "SELECT d.*, u.name AS created_by_name
+          FROM quote_documents d
+          LEFT JOIN users u ON u.id = d.created_by
+          WHERE d.quote_id = :qid";
+  if ($customerVisibleOnly) {
+    $sql .= " AND d.is_customer_visible = 1";
   }
+  $sql .= " ORDER BY d.created_at DESC, d.id DESC";
+  $st = $pdo->prepare($sql);
+  $st->execute([':qid' => $quoteId]);
+  return $st->fetchAll() ?: [];
 }
 
-function rfq_history(PDO $pdo, int $quoteId): array {
-  try {
-    $stmt = $pdo->prepare("SELECT h.*, u.name AS acted_by_name, u.email AS acted_by_email FROM quote_status_history h LEFT JOIN users u ON u.id = h.acted_by WHERE h.quote_id = :quote_id ORDER BY h.created_at DESC, h.id DESC");
-    $stmt->execute([':quote_id' => $quoteId]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-  } catch (Throwable $e) {
-    error_log('rfq_history failed: ' . $e->getMessage());
-    return [];
+function generate_quote_snapshot(PDO $pdo, int $quoteId, ?int $createdBy = null): array {
+  $q = $pdo->prepare("SELECT * FROM quotes WHERE id=:id");
+  $q->execute([':id' => $quoteId]);
+  $quote = $q->fetch();
+  if (!$quote) {
+    throw new RuntimeException('Quote not found');
   }
-}
 
+  $itemsSt = $pdo->prepare("
+    SELECT qi.qty, qi.unit_price, p.name, p.brand, p.sku
+    FROM quote_items qi
+    LEFT JOIN products p ON p.id = qi.product_id
+    WHERE qi.quote_id = :qid
+    ORDER BY qi.id ASC
+  ");
+  $itemsSt->execute([':qid' => $quoteId]);
+  $items = $itemsSt->fetchAll() ?: [];
 
-function quote_revision_number(PDO $pdo, int $quoteId): int {
-  try {
-    $stmt = $pdo->prepare("SELECT COALESCE(MAX(version_no), 0) FROM quote_revisions WHERE quote_id=:quote_id");
-    $stmt->execute([':quote_id' => $quoteId]);
-    return ((int)$stmt->fetchColumn()) + 1;
-  } catch (Throwable $e) {
-    error_log('quote_revision_number failed: ' . $e->getMessage());
-    return 1;
+  require_once __DIR__ . '/settings.php';
+
+  $isQuoted = (($quote['status'] ?? '') === 'quoted');
+  $subtotal = 0.0;
+  foreach ($items as $it) {
+    $subtotal += ((int)$it['qty']) * ((float)($it['unit_price'] ?? 0));
   }
-}
+  $shipping = (float)($quote['shipping_fee'] ?? 0);
+  $over = (float)($quote['overhead_charge'] ?? 0);
+  $other = (float)($quote['other_expenses'] ?? 0);
+  $inst = (float)($quote['installation_expenses'] ?? 0);
+  $grand = (float)($quote['total'] ?? ($subtotal + $shipping + $over + $other + $inst));
 
-function create_quote_revision(PDO $pdo, int $quoteId, string $reason = '', array $meta = []): ?int {
-  try {
-    $quoteStmt = $pdo->prepare("SELECT * FROM quotes WHERE id=:id LIMIT 1");
-    $quoteStmt->execute([':id' => $quoteId]);
-    $quote = $quoteStmt->fetch(PDO::FETCH_ASSOC);
-    if (!$quote) return null;
+  $site = (string)setting('site_name', 'Pharmastar Diagnostics');
+  $hotline = (string)setting('contact_hotline', '+639691229230');
+  $email = (string)setting('contact_email', 'admin@example.com');
+  $wa = (string)setting('contact_whatsapp', '+639453462354');
 
-    $itemsStmt = $pdo->prepare("SELECT qi.*, p.name AS product_name, p.sku AS product_sku, p.brand AS product_brand FROM quote_items qi LEFT JOIN products p ON p.id = qi.product_id WHERE qi.quote_id=:quote_id ORDER BY qi.id ASC");
-    $itemsStmt->execute([':quote_id' => $quoteId]);
-    $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+  $safeQuoteNumber = preg_replace('/[^A-Za-z0-9\-]+/', '-', (string)$quote['quote_number']);
+  $relativeDir = 'uploads/quote_documents/' . date('Y') . '/' . date('m');
+  $dir = ensure_storage_dir($relativeDir);
+  $filename = strtolower($safeQuoteNumber . '-snapshot-' . date('Ymd-His') . '.html');
+  $fullPath = $dir . '/' . $filename;
+  $relativePath = $relativeDir . '/' . $filename;
 
-    $versionNo = quote_revision_number($pdo, $quoteId);
+  ob_start();
+  ?>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title><?php echo e($isQuoted ? 'Official Quotation' : 'RFQ Snapshot'); ?> <?php echo e($quote['quote_number']); ?></title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;margin:28px;background:#fff}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+  .brand{font-size:20px;font-weight:800}
+  .muted{color:#64748b}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:700}
+  table{width:100%;border-collapse:collapse;margin-top:18px}
+  th,td{border:1px solid #e2e8f0;padding:10px 12px;font-size:13px;vertical-align:top}
+  th{background:#f8fafc;text-align:left}
+  .right{text-align:right}
+  .card{border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-top:18px}
+  .notes{white-space:pre-line;line-height:1.6}
+  .footer{margin-top:20px;font-size:12px;color:#64748b}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div>
+      <div class="brand"><?php echo e($site); ?></div>
+      <div class="muted">Hotline: <?php echo e($hotline); ?> • WhatsApp: <?php echo e($wa); ?> • Email: <?php echo e($email); ?></div>
+    </div>
+    <div style="text-align:right">
+      <div><strong>Reference:</strong> <?php echo e($quote['quote_number']); ?></div>
+      <div style="margin-top:6px"><span class="badge"><?php echo e(strtoupper((string)$quote['status'])); ?></span></div>
+      <div class="muted" style="margin-top:6px">Generated: <?php echo e(date('Y-m-d H:i:s')); ?></div>
+    </div>
+  </div>
 
-    $insert = $pdo->prepare("INSERT INTO quote_revisions(quote_id,version_no,reason,status_snapshot,subtotal,shipping_fee,overhead_charge,other_expenses,installation_expenses,total,valid_until,lead_time,warranty,payment_terms,admin_notes,meta_json,created_by,created_at) VALUES(:quote_id,:version_no,:reason,:status_snapshot,:subtotal,:shipping_fee,:overhead_charge,:other_expenses,:installation_expenses,:total,:valid_until,:lead_time,:warranty,:payment_terms,:admin_notes,:meta_json,:created_by,NOW())");
-    $insert->execute([
-      ':quote_id' => $quoteId,
-      ':version_no' => $versionNo,
-      ':reason' => $reason !== '' ? $reason : null,
-      ':status_snapshot' => $quote['status'] ?? null,
-      ':subtotal' => $quote['subtotal'] ?? 0,
-      ':shipping_fee' => $quote['shipping_fee'] ?? 0,
-      ':overhead_charge' => $quote['overhead_charge'] ?? 0,
-      ':other_expenses' => $quote['other_expenses'] ?? 0,
-      ':installation_expenses' => $quote['installation_expenses'] ?? 0,
-      ':total' => $quote['total'] ?? 0,
-      ':valid_until' => $quote['valid_until'] ?? null,
-      ':lead_time' => $quote['lead_time'] ?? null,
-      ':warranty' => $quote['warranty'] ?? null,
-      ':payment_terms' => $quote['payment_terms'] ?? null,
-      ':admin_notes' => $quote['admin_notes'] ?? null,
-      ':meta_json' => audit_json($meta),
-      ':created_by' => current_user_id(),
-    ]);
-    $revisionId = (int)$pdo->lastInsertId();
+  <div class="card">
+    <div><strong>Customer:</strong> <?php echo e($quote['name']); ?></div>
+    <?php if (!empty($quote['company'])): ?><div><strong>Company:</strong> <?php echo e($quote['company']); ?></div><?php endif; ?>
+    <div><strong>Email:</strong> <?php echo e($quote['email']); ?></div>
+    <?php if (!empty($quote['phone'])): ?><div><strong>Phone:</strong> <?php echo e($quote['phone']); ?></div><?php endif; ?>
+  </div>
 
-    if ($items) {
-      $itemInsert = $pdo->prepare("INSERT INTO quote_revision_items(revision_id,quote_item_id,product_id,product_name,sku,brand,qty,unit_price,line_total,created_at) VALUES(:revision_id,:quote_item_id,:product_id,:product_name,:sku,:brand,:qty,:unit_price,:line_total,NOW())");
-      foreach ($items as $item) {
-        $qty = (int)($item['qty'] ?? 0);
-        $unit = (float)($item['unit_price'] ?? 0);
-        $itemInsert->execute([
-          ':revision_id' => $revisionId,
-          ':quote_item_id' => (int)($item['id'] ?? 0),
-          ':product_id' => !empty($item['product_id']) ? (int)$item['product_id'] : null,
-          ':product_name' => $item['product_name'] ?? 'Unknown product',
-          ':sku' => $item['product_sku'] ?? null,
-          ':brand' => $item['product_brand'] ?? null,
-          ':qty' => $qty,
-          ':unit_price' => $unit,
-          ':line_total' => $qty * $unit,
-        ]);
-      }
-    }
+  <h2 style="margin-top:22px"><?php echo e($isQuoted ? 'Official Quotation Snapshot' : 'RFQ Snapshot'); ?></h2>
+  <table>
+    <?php if ($isQuoted): ?>
+      <tr><th>Product</th><th style="width:80px">Qty</th><th style="width:140px" class="right">Unit</th><th style="width:160px" class="right">Line Total</th></tr>
+    <?php else: ?>
+      <tr><th>Product</th><th style="width:90px">Qty</th></tr>
+    <?php endif; ?>
+    <?php foreach ($items as $it): ?>
+      <tr>
+        <td>
+          <strong><?php echo e($it['name'] ?: 'Unknown product'); ?></strong><br>
+          <span class="muted"><?php echo e($it['brand'] ?: ''); ?><?php if (!empty($it['sku'])): ?> • <?php echo e($it['sku']); ?><?php endif; ?></span>
+        </td>
+        <?php if ($isQuoted): ?>
+          <?php $qty = (int)$it['qty']; $unit = (float)($it['unit_price'] ?? 0); $line = $qty * $unit; ?>
+          <td><?php echo $qty; ?></td>
+          <td class="right">₱<?php echo number_format($unit, 2); ?></td>
+          <td class="right">₱<?php echo number_format($line, 2); ?></td>
+        <?php else: ?>
+          <td><?php echo (int)$it['qty']; ?></td>
+        <?php endif; ?>
+      </tr>
+    <?php endforeach; ?>
+  </table>
 
-    return $revisionId;
-  } catch (Throwable $e) {
-    error_log('create_quote_revision failed: ' . $e->getMessage());
-    return null;
-  }
-}
+  <?php if ($isQuoted): ?>
+    <div class="card">
+      <h3 style="margin:0 0 10px">Commercial Summary</h3>
+      <table style="margin-top:0">
+        <tr><th class="right">Subtotal</th><td class="right">₱<?php echo number_format($subtotal, 2); ?></td></tr>
+        <tr><th class="right">Overhead Charge</th><td class="right">₱<?php echo number_format($over, 2); ?></td></tr>
+        <tr><th class="right">Other Expenses</th><td class="right">₱<?php echo number_format($other, 2); ?></td></tr>
+        <tr><th class="right">Installation Expenses</th><td class="right">₱<?php echo number_format($inst, 2); ?></td></tr>
+        <tr><th class="right">Shipping</th><td class="right">₱<?php echo number_format($shipping, 2); ?></td></tr>
+        <tr><th class="right">Grand Total</th><td class="right"><strong>₱<?php echo number_format($grand, 2); ?></strong></td></tr>
+      </table>
+    </div>
 
-function quote_revisions(PDO $pdo, int $quoteId): array {
-  try {
-    $stmt = $pdo->prepare("SELECT r.*, u.name AS created_by_name, u.email AS created_by_email FROM quote_revisions r LEFT JOIN users u ON u.id = r.created_by WHERE r.quote_id=:quote_id ORDER BY r.version_no DESC, r.id DESC");
-    $stmt->execute([':quote_id' => $quoteId]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-  } catch (Throwable $e) {
-    error_log('quote_revisions failed: ' . $e->getMessage());
-    return [];
-  }
-}
+    <div class="card">
+      <h3 style="margin:0 0 10px">Quotation Terms</h3>
+      <div class="notes"><strong>Valid Until:</strong> <?php echo e($quote['valid_until'] ?? '—'); ?></div>
+      <div class="notes"><strong>Lead Time:</strong> <?php echo e($quote['lead_time'] ?? '—'); ?></div>
+      <div class="notes"><strong>Warranty:</strong> <?php echo e($quote['warranty'] ?? '—'); ?></div>
+      <div class="notes"><strong>Payment Terms:</strong><br><?php echo nl2br(e($quote['payment_terms'] ?? '—')); ?></div>
+    </div>
+  <?php endif; ?>
 
-function quote_revision_items(PDO $pdo, int $revisionId): array {
-  try {
-    $stmt = $pdo->prepare("SELECT * FROM quote_revision_items WHERE revision_id=:revision_id ORDER BY id ASC");
-    $stmt->execute([':revision_id' => $revisionId]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-  } catch (Throwable $e) {
-    error_log('quote_revision_items failed: ' . $e->getMessage());
-    return [];
-  }
-}
+  <div class="card">
+    <h3 style="margin:0 0 10px">Customer Notes</h3>
+    <div class="notes"><?php echo e($quote['notes'] ?: '—'); ?></div>
+  </div>
 
+  <div class="footer">
+    Stored snapshot generated by the RFQ workflow. This document can be referenced for customer follow-up and recruiter-facing repository review.
+  </div>
+</body>
+</html>
+<?php
+  $html = (string)ob_get_clean();
+  file_put_contents($fullPath, $html);
+  $fileSize = @filesize($fullPath) ?: 0;
 
-function quote_approval_label(string $status): string {
-  $status = strtolower(trim($status));
-  $map = [
-    'pending' => 'Pending Customer Decision',
-    'approved' => 'Approved by Customer',
-    'rejected' => 'Rejected by Customer',
+  $insert = $pdo->prepare("
+    INSERT INTO quote_documents
+      (quote_id, document_type, title, storage_mode, file_path, mime_type, file_size, created_by, is_customer_visible)
+    VALUES
+      (:qid, 'quotation_html', :title, 'generated', :path, 'text/html', :size, :created_by, 1)
+  ");
+  $title = quote_document_title($quote, $isQuoted ? 'Official Quotation Snapshot' : 'RFQ Snapshot');
+  $insert->execute([
+    ':qid' => $quoteId,
+    ':title' => $title,
+    ':path' => $relativePath,
+    ':size' => $fileSize,
+    ':created_by' => $createdBy,
+  ]);
+
+  return [
+    'id' => (int)$pdo->lastInsertId(),
+    'title' => $title,
+    'file_path' => $relativePath,
+    'mime_type' => 'text/html',
+    'file_size' => $fileSize,
   ];
-  return $map[$status] ?? ucfirst($status ?: 'pending');
-}
-
-function quote_approval_badge_class(string $status): string {
-  $status = strtolower(trim($status));
-  if ($status === 'approved') return 'success';
-  if ($status === 'rejected') return 'danger';
-  return 'pending';
 }

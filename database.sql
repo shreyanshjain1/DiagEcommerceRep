@@ -29,30 +29,6 @@ CREATE TABLE users (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
-
-
--- =========================
--- AUDIT LOGS
--- =========================
-CREATE TABLE audit_logs (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT DEFAULT NULL,
-  entity_type VARCHAR(80) NOT NULL,
-  entity_id INT NOT NULL,
-  action VARCHAR(80) NOT NULL,
-  before_json LONGTEXT DEFAULT NULL,
-  after_json LONGTEXT DEFAULT NULL,
-  meta_json LONGTEXT DEFAULT NULL,
-  ip_address VARCHAR(64) DEFAULT NULL,
-  user_agent VARCHAR(255) DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_audit_logs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB;
-
-CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
-CREATE INDEX idx_audit_logs_created ON audit_logs(created_at);
-CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
-
 -- =========================
 -- SETTINGS (admin-configurable site values)
 -- =========================
@@ -223,9 +199,6 @@ CREATE TABLE quotes (
   user_id INT DEFAULT NULL,
   quote_number VARCHAR(30) NOT NULL UNIQUE,
   status ENUM('draft','submitted','quoted','closed') NOT NULL DEFAULT 'draft',
-  approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
-  approval_note TEXT DEFAULT NULL,
-  approval_decided_at DATETIME DEFAULT NULL,
   notes TEXT DEFAULT NULL,
   admin_notes TEXT DEFAULT NULL,
   subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -251,10 +224,6 @@ CREATE TABLE quotes (
   CONSTRAINT fk_quotes_sent_by FOREIGN KEY (sent_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
-CREATE INDEX idx_quotes_status ON quotes(status);
-CREATE INDEX idx_quotes_approval_status ON quotes(approval_status);
-CREATE INDEX idx_quotes_user_updated ON quotes(user_id, updated_at);
-
 CREATE TABLE quote_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   quote_id INT NOT NULL,
@@ -265,25 +234,23 @@ CREATE TABLE quote_items (
   CONSTRAINT fk_quote_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
-CREATE TABLE quote_status_history (
+CREATE TABLE quote_documents (
   id INT AUTO_INCREMENT PRIMARY KEY,
   quote_id INT NOT NULL,
-  event_type VARCHAR(50) NOT NULL,
-  from_status VARCHAR(30) DEFAULT NULL,
-  to_status VARCHAR(30) DEFAULT NULL,
-  note TEXT DEFAULT NULL,
-  meta_json LONGTEXT DEFAULT NULL,
-  acted_by INT DEFAULT NULL,
-  ip_address VARCHAR(64) DEFAULT NULL,
-  user_agent VARCHAR(255) DEFAULT NULL,
+  document_type ENUM('quotation_html','quotation_pdf','attachment') NOT NULL DEFAULT 'quotation_html',
+  title VARCHAR(190) NOT NULL,
+  storage_mode ENUM('generated','uploaded') NOT NULL DEFAULT 'generated',
+  file_path VARCHAR(255) NOT NULL,
+  mime_type VARCHAR(120) DEFAULT NULL,
+  file_size INT NOT NULL DEFAULT 0,
+  created_by INT DEFAULT NULL,
+  is_customer_visible TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_quote_status_history_quote FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE,
-  CONSTRAINT fk_quote_status_history_user FOREIGN KEY (acted_by) REFERENCES users(id) ON DELETE SET NULL
+  CONSTRAINT fk_quote_documents_quote FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE,
+  CONSTRAINT fk_quote_documents_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
-CREATE INDEX idx_quote_status_history_quote_created ON quote_status_history(quote_id, created_at);
-CREATE INDEX idx_quote_status_history_event ON quote_status_history(event_type);
-
+CREATE INDEX idx_quote_documents_quote ON quote_documents(quote_id, created_at);
 
 -- =========================
 -- SEED DATA
@@ -411,48 +378,3 @@ INSERT INTO documents(product_id,title,label,file_path) VALUES
 ((SELECT id FROM products WHERE slug='snibe-maglumi-x3'),'Brochure','Brochure – MAGLUMI X3','uploads/docs/maglumi-x3-brochure.pdf');
 
 SET FOREIGN_KEY_CHECKS=1;
-
-
-CREATE TABLE quote_revisions (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  quote_id INT NOT NULL,
-  version_no INT NOT NULL,
-  reason VARCHAR(255) NULL,
-  status_snapshot VARCHAR(30) NULL,
-  subtotal DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  shipping_fee DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  overhead_charge DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  other_expenses DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  installation_expenses DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  valid_until DATE NULL,
-  lead_time VARCHAR(150) NULL,
-  warranty VARCHAR(150) NULL,
-  payment_terms TEXT NULL,
-  admin_notes TEXT NULL,
-  meta_json JSON NULL,
-  created_by INT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_quote_revision_version (quote_id, version_no),
-  KEY idx_quote_revisions_quote_created (quote_id, created_at),
-  CONSTRAINT fk_quote_revisions_quote FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE,
-  CONSTRAINT fk_quote_revisions_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE quote_revision_items (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  revision_id INT NOT NULL,
-  quote_item_id INT NULL,
-  product_id INT NULL,
-  product_name VARCHAR(255) NOT NULL,
-  sku VARCHAR(120) NULL,
-  brand VARCHAR(150) NULL,
-  qty INT NOT NULL DEFAULT 1,
-  unit_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  line_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_quote_revision_items_revision (revision_id),
-  KEY idx_quote_revision_items_product (product_id),
-  CONSTRAINT fk_quote_revision_items_revision FOREIGN KEY (revision_id) REFERENCES quote_revisions(id) ON DELETE CASCADE,
-  CONSTRAINT fk_quote_revision_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

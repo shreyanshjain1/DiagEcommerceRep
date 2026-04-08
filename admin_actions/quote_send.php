@@ -13,8 +13,6 @@ $id = (int)($_POST['id'] ?? 0);
 if ($id <= 0) { http_response_code(400); exit('Bad request'); }
 
 $admin_notes = trim((string)($_POST['admin_notes'] ?? ''));
-$timeline_note = trim((string)($_POST['timeline_note'] ?? ''));
-$revision_reason = trim((string)($_POST['revision_reason'] ?? ''));
 
 $shipping_fee_in = is_numeric($_POST['shipping_fee'] ?? null) ? (float)$_POST['shipping_fee'] : null;
 $overhead_in = is_numeric($_POST['overhead_charge'] ?? null) ? (float)$_POST['overhead_charge'] : null;
@@ -32,19 +30,7 @@ if (!is_array($item_prices)) $item_prices = [];
 try {
   $pdo->beginTransaction();
 
-  $beforeStmt = $pdo->prepare("SELECT id, quote_number, status, approval_status, approval_note, approval_decided_at, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, sent_at, sent_to, sent_by, total, updated_at FROM quotes WHERE id=:id");
-  $beforeStmt->execute([':id'=>$id]);
-  $before = $beforeStmt->fetch(PDO::FETCH_ASSOC);
-
-  $snapshotId = null;
-  $alreadyQuoted = in_array((string)($before['status'] ?? ''), ['quoted','closed'], true) || !empty($before['sent_at']);
-  if ($alreadyQuoted) {
-    $snapshotId = create_quote_revision($pdo, $id, $revision_reason !== '' ? $revision_reason : 'Pre-send quotation revision snapshot', [
-      'trigger' => 'admin_quote_send',
-      'timeline_note' => $timeline_note,
-    ]);
-  }
-
+  // Update item prices
   $up = $pdo->prepare("UPDATE quote_items SET unit_price=:p WHERE id=:id AND quote_id=:qid");
   foreach($item_prices as $itemId => $price){
     $iid = (int)$itemId;
@@ -54,10 +40,12 @@ try {
     $up->execute([':p'=>$p, ':id'=>$iid, ':qid'=>$id]);
   }
 
+  // Recompute subtotal
   $sum = $pdo->prepare("SELECT COALESCE(SUM(qty * unit_price),0) AS subtotal FROM quote_items WHERE quote_id=:qid");
   $sum->execute([':qid'=>$id]);
   $subtotal = (float)($sum->fetch()['subtotal'] ?? 0);
 
+  // Load current quote row (and existing charges)
   $rowq = $pdo->prepare("SELECT COALESCE(shipping_fee,0) AS ship, COALESCE(overhead_charge,0) AS ov, COALESCE(other_expenses,0) AS ot, COALESCE(installation_expenses,0) AS ins, email FROM quotes WHERE id=:id");
   $rowq->execute([':id'=>$id]);
   $q = $rowq->fetch();
@@ -73,7 +61,7 @@ try {
   $sentTo = (string)($q['email'] ?? '');
   $sentBy = current_user_id();
 
-  $st = $pdo->prepare("UPDATE quotes SET status='quoted', approval_status='pending', approval_note=NULL, approval_decided_at=NULL, admin_notes=:n, subtotal=:sub, shipping_fee=:sh, overhead_charge=:ov, other_expenses=:ot, installation_expenses=:ins, valid_until=:vu, lead_time=:lt, warranty=:w, payment_terms=:pt, total=:t, sent_at=NOW(), sent_to=:sto, sent_by=:sby, updated_at=NOW() WHERE id=:id");
+  $st = $pdo->prepare("UPDATE quotes SET status='quoted', admin_notes=:n, subtotal=:sub, shipping_fee=:sh, overhead_charge=:ov, other_expenses=:ot, installation_expenses=:ins, valid_until=:vu, lead_time=:lt, warranty=:w, payment_terms=:pt, total=:t, sent_at=NOW(), sent_to=:sto, sent_by=:sby, updated_at=NOW() WHERE id=:id");
   $st->execute([
     ':n'=>$admin_notes,
     ':sub'=>$subtotal,
@@ -91,32 +79,18 @@ try {
     ':id'=>$id
   ]);
 
-  $afterStmt = $pdo->prepare("SELECT id, quote_number, status, approval_status, approval_note, approval_decided_at, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, sent_at, sent_to, sent_by, total, updated_at FROM quotes WHERE id=:id");
-  $afterStmt->execute([':id'=>$id]);
-  $after = $afterStmt->fetch(PDO::FETCH_ASSOC);
-
-  audit_log($pdo, 'quote', $id, 'quote_sent', $before, $after, [
-    'sent_to' => $sentTo,
-    'updated_item_prices' => array_map('intval', array_keys($item_prices)),
-    'timeline_note' => $timeline_note,
-    'revision_reason' => $revision_reason,
-    'quote_revision_id' => $snapshotId,
-  ]);
-
-  rfq_timeline_log($pdo, $id, 'quote_sent', $before['status'] ?? null, $after['status'] ?? null, $timeline_note !== '' ? $timeline_note : 'Formal quotation sent to customer.', [
-    'quote_number' => $after['quote_number'] ?? null,
-    'sent_to' => $sentTo,
-    'updated_item_prices' => array_map('intval', array_keys($item_prices)),
-    'source' => 'admin_actions/quote_send.php',
-    'quote_revision_id' => $snapshotId,
-  ]);
-
   $pdo->commit();
 } catch (Throwable $e) {
   if ($pdo->inTransaction()) $pdo->rollBack();
   error_log('Quote send save failed: ' . $e->getMessage());
   header('Location: '.url('admin/rfq-view.php?id='.$id.'&sent=0'));
   exit;
+}
+
+try {
+  generate_quote_snapshot($pdo, $id, current_user_id());
+} catch (Throwable $e) {
+  error_log('Quote snapshot generation failed: ' . $e->getMessage());
 }
 
 try {

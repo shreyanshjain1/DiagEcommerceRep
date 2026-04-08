@@ -39,9 +39,8 @@ $over  = (float)($q['overhead_charge'] ?? 0);
 $other = (float)($q['other_expenses'] ?? 0);
 $inst  = (float)($q['installation_expenses'] ?? 0);
 $computedTotal = $computedSubtotal + $ship + $over + $other + $inst;
-$history = rfq_history($pdo, (int)$q['id']);
-$revisions = quote_revisions($pdo, (int)$q['id']);
-$approvalStatus = (string)($q['approval_status'] ?? 'pending');
+$documents = [];
+try { $documents = get_quote_documents($pdo, (int)$q['id'], false); } catch (Throwable $e) { $documents = []; }
 ?>
 
 <style>
@@ -128,12 +127,6 @@ $approvalStatus = (string)($q['approval_status'] ?? 'pending');
   }
   .rfq-actions .btn{white-space:nowrap}
 
-  .timeline-list{display:flex;flex-direction:column;gap:12px;margin-top:14px}
-  .timeline-item{border:1px solid var(--admin-border);border-radius:14px;padding:14px;background:#fff}
-  .timeline-meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--admin-muted);margin-bottom:8px}
-  .timeline-title{font-weight:900;color:#0f172a;margin-bottom:4px}
-  .timeline-note{white-space:pre-line;line-height:1.55;color:#334155}
-
   /* Make right panel padding feel better */
   .rfq-card{padding:22px !important}
   @media(max-width:640px){.rfq-card{padding:16px !important}}
@@ -143,6 +136,8 @@ $approvalStatus = (string)($q['approval_status'] ?? 'pending');
 <?php if(isset($_GET['saved'])): ?><div class="alert success">Saved.</div><?php endif; ?>
 <?php if(isset($_GET['sent']) && $_GET['sent']==='1'): ?><div class="alert success">Quotation sent to customer.</div><?php endif; ?>
 <?php if(isset($_GET['sent']) && $_GET['sent']==='0'): ?><div class="alert error">Saved but failed to send email (check mail settings).</div><?php endif; ?>
+<?php if(isset($_GET['doc']) && $_GET['doc']==='generated'): ?><div class="alert success">Quotation snapshot generated and stored.</div><?php endif; ?>
+<?php if(isset($_GET['doc']) && $_GET['doc']==='failed'): ?><div class="alert error">Snapshot generation failed. Check PHP file permissions for uploads.</div><?php endif; ?>
 
 <form class="rfq-layout" action="<?php echo url('admin_actions/rfq_update.php'); ?>" method="post">
   <?php csrf_field(); ?>
@@ -156,14 +151,6 @@ $approvalStatus = (string)($q['approval_status'] ?? 'pending');
       <div><strong>Email:</strong> <?php echo e($q['email']); ?></div>
       <?php if($q['phone']): ?><div><strong>Phone:</strong> <?php echo e($q['phone']); ?></div><?php endif; ?>
       <div class="mt16"><strong>Customer Notes:</strong><br><?php echo nl2br(e($q['notes'] ?: '—')); ?></div>
-      <div class="mt16" style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff">
-        <div style="font-weight:800;margin-bottom:6px">Customer Quote Decision</div>
-        <div class="muted" style="line-height:1.55">
-          <div><strong>Status:</strong> <?php echo e(quote_approval_label($approvalStatus)); ?></div>
-          <div><strong>Decision Time:</strong> <?php echo e($q['approval_decided_at'] ?? '—'); ?></div>
-          <div style="margin-top:8px"><strong>Customer Decision Note:</strong><br><?php echo nl2br(e($q['approval_note'] ?? '—')); ?></div>
-        </div>
-      </div>
     </div>
 
     <h3 class="mt16">Items & Pricing</h3>
@@ -232,6 +219,36 @@ $approvalStatus = (string)($q['approval_status'] ?? 'pending');
       <a class="btn secondary" target="_blank" rel="noopener" href="<?php echo e(wa_link($whatsapp, $msg)); ?>">WhatsApp follow-up</a>
       <a class="btn secondary" href="mailto:<?php echo e($q['email']); ?>?subject=<?php echo rawurlencode('Your RFQ ' . $q['quote_number']); ?>">Email customer</a>
     </div>
+    <form method="post" action="<?php echo url('admin_actions/quote_document_generate.php'); ?>" style="margin-top:12px">
+      <?php csrf_field(); ?>
+      <input type="hidden" name="id" value="<?php echo (int)$q['id']; ?>">
+      <button class="btn secondary" type="submit" style="width:100%">Generate Stored Quotation Snapshot</button>
+    </form>
+
+    <div class="card" style="margin-top:14px;padding:14px;border:1px solid var(--admin-border);border-radius:16px;background:#fff">
+      <div style="font-weight:900;color:#0f172a">Quotation Documents</div>
+      <div class="muted" style="margin-top:6px;font-size:13px">Stored customer-facing snapshots and recruiter-friendly document artifacts.</div>
+      <div style="margin-top:12px">
+        <?php if(!$documents): ?>
+          <div class="muted">No stored quotation documents yet.</div>
+        <?php else: ?>
+          <?php foreach($documents as $doc): ?>
+            <div style="padding:10px 0;border-top:1px solid #eef2f7">
+              <div style="font-weight:800"><?php echo e($doc['title']); ?></div>
+              <div class="muted" style="font-size:12px">
+                <?php echo e($doc['document_type']); ?> •
+                <?php echo e($doc['mime_type'] ?: 'application/octet-stream'); ?> •
+                <?php echo e($doc['created_at']); ?>
+                <?php if(!empty($doc['created_by_name'])): ?> • by <?php echo e($doc['created_by_name']); ?><?php endif; ?>
+              </div>
+              <div style="margin-top:8px">
+                <a class="btn ghost" target="_blank" rel="noopener" href="<?php echo asset($doc['file_path']); ?>">Open Stored File</a>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </div>
+    </div>
 
     <div class="admin-form">
       <div class="row2">
@@ -275,15 +292,6 @@ $approvalStatus = (string)($q['approval_status'] ?? 'pending');
         <label for="admin_notes">Admin Notes (internal)</label>
         <textarea id="admin_notes" name="admin_notes" rows="6" placeholder="Add internal notes, pricing references, follow-up status, etc..."><?php echo e($q['admin_notes'] ?? ''); ?></textarea>
       </div>
-
-      <div class="full">
-        <label for="timeline_note">Timeline Note</label>
-        <textarea id="timeline_note" name="timeline_note" rows="4" placeholder="Optional: add a visible internal timeline note for this RFQ update."></textarea>
-      </div>
-      <div class="full">
-        <label for="revision_reason">Revision Note</label>
-        <textarea id="revision_reason" name="revision_reason" rows="3" placeholder="Optional: explain why this quote version changed (pricing refresh, supplier cost update, freight update, revised scope, etc.)"></textarea>
-      </div>
     </div>
 
     <div class="rfq-actions">
@@ -297,39 +305,6 @@ $approvalStatus = (string)($q['approval_status'] ?? 'pending');
 
     <div class="mt16 muted" style="font-size:12px;line-height:1.55">
       Tip: Set status to <strong>Quoted</strong> once you have sent the formal quotation to the customer.
-    </div>
-
-    <div class="mt16">
-      <h3 style="margin-bottom:0">RFQ Timeline</h3>
-      <div class="sub">Status movement and admin notes recorded for recruiter-visible workflow depth.</div>
-      <?php if($history): ?>
-        <div class="timeline-list">
-          <?php foreach($history as $entry): ?>
-            <?php
-              $who = trim((string)($entry['acted_by_name'] ?? ''));
-              if ($who === '') $who = 'System / Unknown';
-              $from = trim((string)($entry['from_status'] ?? ''));
-              $to = trim((string)($entry['to_status'] ?? ''));
-              $title = ucwords(str_replace('_',' ', (string)($entry['event_type'] ?? 'update')));
-              if ($from !== '' || $to !== '') {
-                $title .= ' · ' . ($from !== '' ? ucfirst($from) : '—') . ' → ' . ($to !== '' ? ucfirst($to) : '—');
-              }
-            ?>
-            <div class="timeline-item">
-              <div class="timeline-meta">
-                <span><?php echo e($who); ?></span>
-                <span><?php echo e($entry['created_at']); ?></span>
-              </div>
-              <div class="timeline-title"><?php echo e($title); ?></div>
-              <div class="timeline-note"><?php echo nl2br(e($entry['note'] ?: 'No additional note.')); ?></div>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      <?php else: ?>
-        <div class="card p mt16" style="background:#f8fafc">
-          <div class="muted">No RFQ timeline entries yet.</div>
-        </div>
-      <?php endif; ?>
     </div>
   </div>
 </form>

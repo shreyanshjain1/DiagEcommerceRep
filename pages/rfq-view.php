@@ -35,20 +35,14 @@ $grand = (float)($q['total'] ?? ($subtotal + $shipping + $over + $other + $inst)
 
 $wa = (string)setting('contact_whatsapp', '09453462354');
 $msg = 'Hi! Following up on RFQ ' . $q['quote_number'] . '.';
-$history = rfq_history($pdo, (int)$q['id']);
-$revisions = quote_revisions($pdo, (int)$q['id']);
-$approvalStatus = (string)($q['approval_status'] ?? 'pending');
-$canDecide = $isQuoted && $approvalStatus === 'pending';
+$documents = [];
+try { $documents = get_quote_documents($pdo, (int)$q['id'], true); } catch (Throwable $e) { $documents = []; }
 ?>
 
 <div class="page-head">
   <h1>RFQ <?php echo e($q['quote_number']); ?></h1>
-  <p class="muted">Status: <span class="tag"><?php echo e($q['status']); ?></span> · Approval: <span class="tag"><?php echo e(quote_approval_label($approvalStatus)); ?></span></p>
+  <p class="muted">Status: <span class="tag"><?php echo e($q['status']); ?></span></p>
 </div>
-
-<?php if(isset($_GET['decision']) && $_GET['decision']==='approved'): ?><div class="alert success">Quotation approved successfully.</div><?php endif; ?>
-<?php if(isset($_GET['decision']) && $_GET['decision']==='rejected'): ?><div class="alert success">Quotation rejection recorded successfully.</div><?php endif; ?>
-<?php if(isset($_GET['decision']) && $_GET['decision']==='error'): ?><div class="alert error">Could not save your quotation decision.</div><?php endif; ?>
 
 <div class="grid" style="grid-template-columns:1.2fr .8fr;gap:16px;align-items:start">
   <div class="card p">
@@ -112,80 +106,39 @@ $canDecide = $isQuoted && $approvalStatus === 'pending';
       <strong>Your notes:</strong><br>
       <div class="muted" style="white-space:pre-line"><?php echo e($q['notes'] ?: '—'); ?></div>
     </div>
+
+    <div class="mt16 muted" style="font-size:13px;line-height:1.55">
+      This RFQ does not include pricing. Our team will send back a formal quotation with prices, lead time, and availability.
+    </div>
   </div>
 
   <div class="card p">
     <h3 class="m0">Actions</h3>
-
-    <div class="mt16" style="display:flex;flex-direction:column;gap:12px">
-      <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff">
-        <div style="font-weight:800;margin-bottom:6px">Quotation Decision</div>
-        <div class="muted" style="line-height:1.55;margin-bottom:10px">
-          Current state: <strong><?php echo e(quote_approval_label($approvalStatus)); ?></strong>
-          <?php if(!empty($q['approval_decided_at'])): ?>
-            <br>Decision date: <?php echo e($q['approval_decided_at']); ?>
-          <?php endif; ?>
-        </div>
-
-        <?php if(!empty($q['approval_note'])): ?>
-          <div class="muted" style="white-space:pre-line;line-height:1.55;margin-bottom:10px">
-            <strong>Your note:</strong><br><?php echo e($q['approval_note']); ?>
-          </div>
-        <?php endif; ?>
-
-        <?php if($canDecide): ?>
-          <form method="post" action="<?php echo url('actions/quote_decision.php'); ?>" style="display:flex;flex-direction:column;gap:10px">
-            <?php csrf_field(); ?>
-            <input type="hidden" name="id" value="<?php echo (int)$q['id']; ?>">
-            <textarea name="reason" rows="4" placeholder="Optional: share PO timing, budget note, scope concern, or reason for rejection." style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px"></textarea>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn" type="submit" name="decision" value="approved" onclick="return confirm('Approve this quotation?');">Approve Quotation</button>
-              <button class="btn secondary" type="submit" name="decision" value="rejected" onclick="return confirm('Reject this quotation?');">Reject Quotation</button>
-            </div>
-          </form>
-        <?php elseif($isQuoted): ?>
-          <div class="muted">This quotation already has a recorded customer decision.</div>
+    <div class="mt16" style="border:1px solid #e2e8f0;border-radius:14px;padding:12px;background:#f8fafc">
+      <div style="font-weight:800">Quotation Documents</div>
+      <div class="muted" style="font-size:13px;margin-top:4px">Stored snapshots of sent quotations and RFQ documents.</div>
+      <div style="margin-top:10px">
+        <?php if(!$documents): ?>
+          <div class="muted">No stored quotation documents available yet.</div>
         <?php else: ?>
-          <div class="muted">Approval becomes available once our team sends the formal quotation.</div>
+          <?php foreach($documents as $doc): ?>
+            <div style="padding:10px 0;border-top:1px solid #e2e8f0">
+              <div style="font-weight:800"><?php echo e($doc['title']); ?></div>
+              <div class="muted" style="font-size:12px"><?php echo e($doc['created_at']); ?> • <?php echo e($doc['document_type']); ?></div>
+              <div style="margin-top:8px">
+                <a class="btn ghost" href="<?php echo quote_public_download_url((int)$q['id'], (int)$doc['id']); ?>">Download Stored File</a>
+              </div>
+            </div>
+          <?php endforeach; ?>
         <?php endif; ?>
       </div>
-
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a class="btn secondary" href="<?php echo url('pages/quote-pdf.php?id='.$q['id']); ?>" target="_blank" rel="noopener"><?php echo $isQuoted ? 'Download Quotation PDF' : 'Download RFQ PDF'; ?></a>
-        <a class="btn secondary" target="_blank" rel="noopener" href="<?php echo e(wa_link($wa, $msg)); ?>">Chat on WhatsApp</a>
-        <a class="btn ghost" href="<?php echo url('pages/quotes.php'); ?>">Back</a>
-      </div>
+    </div>
+    <div class="mt16" style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn secondary" href="<?php echo url('pages/quote-pdf.php?id='.$q['id']); ?>" target="_blank" rel="noopener"><?php echo $isQuoted ? 'Download Quotation PDF' : 'Download RFQ PDF'; ?></a>
+      <a class="btn secondary" target="_blank" rel="noopener" href="<?php echo e(wa_link($wa, $msg)); ?>">Chat on WhatsApp</a>
+      <a class="btn ghost" href="<?php echo url('pages/quotes.php'); ?>">Back</a>
     </div>
   </div>
-
-  <div class="card p mt16">
-    <h3 class="m0">RFQ Timeline</h3>
-    <div class="mt16" style="display:flex;flex-direction:column;gap:10px">
-      <?php if($history): ?>
-        <?php foreach($history as $entry): ?>
-          <?php
-            $from = trim((string)($entry['from_status'] ?? ''));
-            $to = trim((string)($entry['to_status'] ?? ''));
-            $title = ucwords(str_replace('_',' ', (string)($entry['event_type'] ?? 'update')));
-            if ($from !== '' || $to !== '') {
-              $title .= ' · ' . ($from !== '' ? ucfirst($from) : '—') . ' → ' . ($to !== '' ? ucfirst($to) : '—');
-            }
-          ?>
-          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff">
-            <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:#64748b;margin-bottom:6px">
-              <span><?php echo e($entry['created_at']); ?></span>
-              <span><?php echo e($entry['acted_by_name'] ?: 'Team update'); ?></span>
-            </div>
-            <div style="font-weight:800;margin-bottom:4px"><?php echo e($title); ?></div>
-            <div class="muted" style="white-space:pre-line;line-height:1.55"><?php echo e($entry['note'] ?: 'No additional note.'); ?></div>
-          </div>
-        <?php endforeach; ?>
-      <?php else: ?>
-        <div class="muted">No timeline activity recorded yet.</div>
-      <?php endif; ?>
-    </div>
-  </div>
-
 </div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
