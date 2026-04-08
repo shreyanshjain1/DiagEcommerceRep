@@ -223,6 +223,9 @@ CREATE TABLE quotes (
   user_id INT DEFAULT NULL,
   quote_number VARCHAR(30) NOT NULL UNIQUE,
   status ENUM('draft','submitted','quoted','closed') NOT NULL DEFAULT 'draft',
+  approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  approval_note TEXT DEFAULT NULL,
+  approval_decided_at DATETIME DEFAULT NULL,
   notes TEXT DEFAULT NULL,
   admin_notes TEXT DEFAULT NULL,
   subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -247,6 +250,10 @@ CREATE TABLE quotes (
   CONSTRAINT fk_quotes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_quotes_sent_by FOREIGN KEY (sent_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+CREATE INDEX idx_quotes_status ON quotes(status);
+CREATE INDEX idx_quotes_approval_status ON quotes(approval_status);
+CREATE INDEX idx_quotes_user_updated ON quotes(user_id, updated_at);
 
 CREATE TABLE quote_items (
   id INT AUTO_INCREMENT PRIMARY KEY,

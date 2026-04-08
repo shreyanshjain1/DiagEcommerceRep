@@ -41,6 +41,7 @@ $inst  = (float)($q['installation_expenses'] ?? 0);
 $computedTotal = $computedSubtotal + $ship + $over + $other + $inst;
 $history = rfq_history($pdo, (int)$q['id']);
 $revisions = quote_revisions($pdo, (int)$q['id']);
+$approvalStatus = (string)($q['approval_status'] ?? 'pending');
 ?>
 
 <style>
@@ -155,6 +156,14 @@ $revisions = quote_revisions($pdo, (int)$q['id']);
       <div><strong>Email:</strong> <?php echo e($q['email']); ?></div>
       <?php if($q['phone']): ?><div><strong>Phone:</strong> <?php echo e($q['phone']); ?></div><?php endif; ?>
       <div class="mt16"><strong>Customer Notes:</strong><br><?php echo nl2br(e($q['notes'] ?: '—')); ?></div>
+      <div class="mt16" style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff">
+        <div style="font-weight:800;margin-bottom:6px">Customer Quote Decision</div>
+        <div class="muted" style="line-height:1.55">
+          <div><strong>Status:</strong> <?php echo e(quote_approval_label($approvalStatus)); ?></div>
+          <div><strong>Decision Time:</strong> <?php echo e($q['approval_decided_at'] ?? '—'); ?></div>
+          <div style="margin-top:8px"><strong>Customer Decision Note:</strong><br><?php echo nl2br(e($q['approval_note'] ?? '—')); ?></div>
+        </div>
+      </div>
     </div>
 
     <h3 class="mt16">Items & Pricing</h3>

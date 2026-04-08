@@ -381,3 +381,21 @@ function quote_revision_items(PDO $pdo, int $revisionId): array {
     return [];
   }
 }
+
+
+function quote_approval_label(string $status): string {
+  $status = strtolower(trim($status));
+  $map = [
+    'pending' => 'Pending Customer Decision',
+    'approved' => 'Approved by Customer',
+    'rejected' => 'Rejected by Customer',
+  ];
+  return $map[$status] ?? ucfirst($status ?: 'pending');
+}
+
+function quote_approval_badge_class(string $status): string {
+  $status = strtolower(trim($status));
+  if ($status === 'approved') return 'success';
+  if ($status === 'rejected') return 'danger';
+  return 'pending';
+}

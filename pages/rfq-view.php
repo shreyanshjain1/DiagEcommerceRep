@@ -37,12 +37,18 @@ $wa = (string)setting('contact_whatsapp', '09453462354');
 $msg = 'Hi! Following up on RFQ ' . $q['quote_number'] . '.';
 $history = rfq_history($pdo, (int)$q['id']);
 $revisions = quote_revisions($pdo, (int)$q['id']);
+$approvalStatus = (string)($q['approval_status'] ?? 'pending');
+$canDecide = $isQuoted && $approvalStatus === 'pending';
 ?>
 
 <div class="page-head">
   <h1>RFQ <?php echo e($q['quote_number']); ?></h1>
-  <p class="muted">Status: <span class="tag"><?php echo e($q['status']); ?></span></p>
+  <p class="muted">Status: <span class="tag"><?php echo e($q['status']); ?></span> · Approval: <span class="tag"><?php echo e(quote_approval_label($approvalStatus)); ?></span></p>
 </div>
+
+<?php if(isset($_GET['decision']) && $_GET['decision']==='approved'): ?><div class="alert success">Quotation approved successfully.</div><?php endif; ?>
+<?php if(isset($_GET['decision']) && $_GET['decision']==='rejected'): ?><div class="alert success">Quotation rejection recorded successfully.</div><?php endif; ?>
+<?php if(isset($_GET['decision']) && $_GET['decision']==='error'): ?><div class="alert error">Could not save your quotation decision.</div><?php endif; ?>
 
 <div class="grid" style="grid-template-columns:1.2fr .8fr;gap:16px;align-items:start">
   <div class="card p">
@@ -106,37 +112,49 @@ $revisions = quote_revisions($pdo, (int)$q['id']);
       <strong>Your notes:</strong><br>
       <div class="muted" style="white-space:pre-line"><?php echo e($q['notes'] ?: '—'); ?></div>
     </div>
-
-    <div class="mt16 muted" style="font-size:13px;line-height:1.55">
-      This RFQ does not include pricing. Our team will send back a formal quotation with prices, lead time, and availability.
-    </div>
   </div>
 
   <div class="card p">
     <h3 class="m0">Actions</h3>
-    <div class="mt16" style="display:flex;gap:10px;flex-wrap:wrap">
-      <a class="btn secondary" href="<?php echo url('pages/quote-pdf.php?id='.$q['id']); ?>" target="_blank" rel="noopener"><?php echo $isQuoted ? 'Download Quotation PDF' : 'Download RFQ PDF'; ?></a>
-      <a class="btn secondary" target="_blank" rel="noopener" href="<?php echo e(wa_link($wa, $msg)); ?>">Chat on WhatsApp</a>
-      <a class="btn ghost" href="<?php echo url('pages/quotes.php'); ?>">Back</a>
-    </div>
-  </div>
 
-    <h3 class="m0">Quote Versions</h3>
-    <div class="mt16" style="display:flex;flex-direction:column;gap:10px">
-      <?php if($revisions): ?>
-        <?php foreach($revisions as $rev): ?>
-          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff">
-            <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:#64748b;margin-bottom:6px">
-              <span>Version <?php echo (int)$rev['version_no']; ?></span>
-              <span><?php echo e($rev['created_at']); ?></span>
-            </div>
-            <div style="font-weight:800;margin-bottom:4px">Quoted Total: ₱<?php echo number_format((float)($rev['total'] ?? 0),2); ?></div>
-            <div class="muted" style="white-space:pre-line;line-height:1.55"><?php echo e($rev['reason'] ?: 'Pricing was revised by our team.'); ?></div>
+    <div class="mt16" style="display:flex;flex-direction:column;gap:12px">
+      <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff">
+        <div style="font-weight:800;margin-bottom:6px">Quotation Decision</div>
+        <div class="muted" style="line-height:1.55;margin-bottom:10px">
+          Current state: <strong><?php echo e(quote_approval_label($approvalStatus)); ?></strong>
+          <?php if(!empty($q['approval_decided_at'])): ?>
+            <br>Decision date: <?php echo e($q['approval_decided_at']); ?>
+          <?php endif; ?>
+        </div>
+
+        <?php if(!empty($q['approval_note'])): ?>
+          <div class="muted" style="white-space:pre-line;line-height:1.55;margin-bottom:10px">
+            <strong>Your note:</strong><br><?php echo e($q['approval_note']); ?>
           </div>
-        <?php endforeach; ?>
-      <?php else: ?>
-        <div class="muted">No earlier quote versions recorded yet.</div>
-      <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if($canDecide): ?>
+          <form method="post" action="<?php echo url('actions/quote_decision.php'); ?>" style="display:flex;flex-direction:column;gap:10px">
+            <?php csrf_field(); ?>
+            <input type="hidden" name="id" value="<?php echo (int)$q['id']; ?>">
+            <textarea name="reason" rows="4" placeholder="Optional: share PO timing, budget note, scope concern, or reason for rejection." style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px"></textarea>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn" type="submit" name="decision" value="approved" onclick="return confirm('Approve this quotation?');">Approve Quotation</button>
+              <button class="btn secondary" type="submit" name="decision" value="rejected" onclick="return confirm('Reject this quotation?');">Reject Quotation</button>
+            </div>
+          </form>
+        <?php elseif($isQuoted): ?>
+          <div class="muted">This quotation already has a recorded customer decision.</div>
+        <?php else: ?>
+          <div class="muted">Approval becomes available once our team sends the formal quotation.</div>
+        <?php endif; ?>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn secondary" href="<?php echo url('pages/quote-pdf.php?id='.$q['id']); ?>" target="_blank" rel="noopener"><?php echo $isQuoted ? 'Download Quotation PDF' : 'Download RFQ PDF'; ?></a>
+        <a class="btn secondary" target="_blank" rel="noopener" href="<?php echo e(wa_link($wa, $msg)); ?>">Chat on WhatsApp</a>
+        <a class="btn ghost" href="<?php echo url('pages/quotes.php'); ?>">Back</a>
+      </div>
     </div>
   </div>
 

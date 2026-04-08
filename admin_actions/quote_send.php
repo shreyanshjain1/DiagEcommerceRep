@@ -32,7 +32,7 @@ if (!is_array($item_prices)) $item_prices = [];
 try {
   $pdo->beginTransaction();
 
-  $beforeStmt = $pdo->prepare("SELECT id, quote_number, status, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, sent_at, sent_to, sent_by, total, updated_at FROM quotes WHERE id=:id");
+  $beforeStmt = $pdo->prepare("SELECT id, quote_number, status, approval_status, approval_note, approval_decided_at, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, sent_at, sent_to, sent_by, total, updated_at FROM quotes WHERE id=:id");
   $beforeStmt->execute([':id'=>$id]);
   $before = $beforeStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -73,7 +73,7 @@ try {
   $sentTo = (string)($q['email'] ?? '');
   $sentBy = current_user_id();
 
-  $st = $pdo->prepare("UPDATE quotes SET status='quoted', admin_notes=:n, subtotal=:sub, shipping_fee=:sh, overhead_charge=:ov, other_expenses=:ot, installation_expenses=:ins, valid_until=:vu, lead_time=:lt, warranty=:w, payment_terms=:pt, total=:t, sent_at=NOW(), sent_to=:sto, sent_by=:sby, updated_at=NOW() WHERE id=:id");
+  $st = $pdo->prepare("UPDATE quotes SET status='quoted', approval_status='pending', approval_note=NULL, approval_decided_at=NULL, admin_notes=:n, subtotal=:sub, shipping_fee=:sh, overhead_charge=:ov, other_expenses=:ot, installation_expenses=:ins, valid_until=:vu, lead_time=:lt, warranty=:w, payment_terms=:pt, total=:t, sent_at=NOW(), sent_to=:sto, sent_by=:sby, updated_at=NOW() WHERE id=:id");
   $st->execute([
     ':n'=>$admin_notes,
     ':sub'=>$subtotal,
@@ -91,7 +91,7 @@ try {
     ':id'=>$id
   ]);
 
-  $afterStmt = $pdo->prepare("SELECT id, quote_number, status, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, sent_at, sent_to, sent_by, total, updated_at FROM quotes WHERE id=:id");
+  $afterStmt = $pdo->prepare("SELECT id, quote_number, status, approval_status, approval_note, approval_decided_at, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, sent_at, sent_to, sent_by, total, updated_at FROM quotes WHERE id=:id");
   $afterStmt->execute([':id'=>$id]);
   $after = $afterStmt->fetch(PDO::FETCH_ASSOC);
 
