@@ -89,19 +89,6 @@ This makes the repo much closer to a **B2B sales operations platform** than a si
 
 ---
 
-## Recruiter-facing highlights
-
-This repository demonstrates:
-- practical PHP/MySQL architecture without frameworks
-- business-aware schema design
-- access control, CSRF, and session hardening work
-- auditability and workflow traceability
-- product and commercial data modeling
-- back-office dashboard/reporting thinking
-- repository hygiene and engineering process awareness
-
----
-
 ## Key schema additions in the current repo
 
 The project now includes stronger business-oriented tables such as:
@@ -115,8 +102,6 @@ The project now includes stronger business-oriented tables such as:
 - `company_account_addresses`
 - `suppliers`
 - password reset support tables
-
-These additions move the system away from a basic student-style shop and closer to a recruiter-worthy internal business platform.
 
 ---
 
