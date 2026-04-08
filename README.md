@@ -34,3 +34,14 @@
 - Volume trend for recent RFQ activity
 - Operational watchlists for stale submissions, expiring quotations, and low-stock risk
 - Top requested products and active company-account snapshots for B2B context
+
+
+## Repository workflow and review quality
+This repository includes GitHub collaboration and quality files to present a more production-minded engineering workflow:
+
+- pull request template for structured reviews
+- issue templates for bugs and enhancements
+- CODEOWNERS for review responsibility
+- SECURITY.md for private vulnerability handling
+- CONTRIBUTING.md for contribution standards
+- GitHub Actions workflows for PHP linting and repo hygiene

@@ -1,0 +1,32 @@
+name: Markdown and repo hygiene
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  markdown-basic-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify important repo files exist
+        run: |
+          test -f README.md
+          test -f SECURITY.md
+          test -f CONTRIBUTING.md
+          test -f .github/pull_request_template.md
+          test -f .github/CODEOWNERS
+
+      - name: Basic markdown heading scan
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          files = [Path('README.md'), Path('SECURITY.md'), Path('CONTRIBUTING.md')]
+          for f in files:
+              text = f.read_text(encoding='utf-8')
+              if '#' not in text:
+                  raise SystemExit(f"{f} does not appear to contain markdown headings")
+          print('Basic markdown checks passed')
+          PY

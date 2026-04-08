@@ -1,0 +1,19 @@
+# Default owner for the repository
+* @shreyanshjain1
+
+# Core business logic
+/actions/ @shreyanshjain1
+/admin_actions/ @shreyanshjain1
+/includes/ @shreyanshjain1
+/config/ @shreyanshjain1
+
+# UI and pages
+/admin/ @shreyanshjain1
+/pages/ @shreyanshjain1
+/assets/ @shreyanshjain1
+
+# Database and docs
+/database.sql @shreyanshjain1
+/database_patch_* @shreyanshjain1
+/README.md @shreyanshjain1
+/.github/ @shreyanshjain1

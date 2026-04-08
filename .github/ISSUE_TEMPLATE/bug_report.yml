@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a defect in the RFQ platform
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the bug clearly.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Customer auth
+        - RFQ flow
+        - Product catalog
+        - Quotation workflow
+        - Admin dashboard
+        - Admin user management
+        - Company accounts
+        - Address profiles
+        - Search
+        - Uploads / documents
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. Submit ...
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        PHP version:
+        MySQL version:
+        Browser:
+        Local / staging / production:
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Paste relevant errors, SQL errors, or screenshots.

@@ -1,0 +1,47 @@
+name: Feature request
+description: Propose a product, workflow, or developer-experience enhancement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / opportunity
+      description: What business or user need does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the expected behavior or workflow.
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact area
+      options:
+        - Customer UX
+        - Admin operations
+        - Security
+        - Reporting / analytics
+        - B2B account management
+        - Quotation workflow
+        - Product data model
+        - Developer workflow
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: schema
+    attributes:
+      label: Database / schema notes
+      description: Mention if this likely needs new tables, columns, or indexes.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - [ ]
+        - [ ]
+        - [ ]
