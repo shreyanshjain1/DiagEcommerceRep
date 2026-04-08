@@ -1,8 +1,6 @@
 <?php
 // Common helpers (no DB dependencies)
-if (session_status() === PHP_SESSION_NONE) {
-  session_start();
-}
+require_once __DIR__ . '/session.php';
 
 // ------------------------------------------------------------
 // Compatibility helpers (PHP 7.4+)
