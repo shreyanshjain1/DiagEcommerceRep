@@ -60,7 +60,7 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         auth_redirect('pages/login.php', 'error', 'Invalid credentials.');
     }
 
-    $stmt = $pdo->prepare("SELECT id,password_hash,role FROM users WHERE email=:e LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id,password_hash,role,is_active FROM users WHERE email=:e LIMIT 1");
     $stmt->execute([':e' => $email]);
     $u = $stmt->fetch();
 
@@ -68,6 +68,16 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['auth_login_attempts'] = (int)($_SESSION['auth_login_attempts'] ?? 0) + 1;
         $_SESSION['auth_last_attempt_at'] = time();
         auth_redirect('pages/login.php', 'error', 'Invalid credentials.');
+    }
+
+    if (isset($u['is_active']) && (int)$u['is_active'] !== 1) {
+        auth_redirect('pages/login.php', 'error', 'Your account is inactive. Please contact an administrator.');
+    }
+
+    try {
+        $pdo->prepare("UPDATE users SET last_login_at=NOW() WHERE id=:id LIMIT 1")->execute([':id' => (int)$u['id']]);
+    } catch (Throwable $e) {
+        error_log('last_login_at update failed: ' . $e->getMessage());
     }
 
     finalize_login($u);

@@ -62,6 +62,27 @@ function redirect(string $to): never {
   exit;
 }
 
+
+function redirect_with_query(string $path, array $params = []): never {
+  $query = http_build_query(array_filter($params, static fn($v) => $v !== null && $v !== ''));
+  $target = url($path);
+  if ($query !== '') {
+    $target .= (strpos($target, '?') === false ? '?' : '&') . $query;
+  }
+  header('Location: ' . $target);
+  exit;
+}
+
+function admin_temp_password(int $length = 12): string {
+  $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+  $max = strlen($alphabet) - 1;
+  $out = '';
+  for ($i = 0; $i < $length; $i++) {
+    $out .= $alphabet[random_int(0, $max)];
+  }
+  return $out;
+}
+
 function current_user_id(): ?int {
   return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
 }
