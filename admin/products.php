@@ -1,158 +1,91 @@
 <?php
 require_once __DIR__.'/header.php';
 require_once __DIR__.'/../config/csrf.php';
-require_once __DIR__.'/../includes/helpers.php';
 
-$q = trim((string)($_GET['q'] ?? ''));
-$availability = trim((string)($_GET['availability'] ?? ''));
-$status = trim((string)($_GET['status'] ?? ''));
-$page = max(1, (int)($_GET['page'] ?? 1));
-$perPage = 25;
-$offset = ($page - 1) * $perPage;
-
-$where = [];
-$params = [];
-
-if ($q !== '') {
-  $where[] = "(p.name LIKE :q OR p.sku LIKE :q OR p.vendor_sku LIKE :q OR p.brand LIKE :q OR c.name LIKE :q OR s.name LIKE :q)";
-  $params[':q'] = '%' . $q . '%';
-}
-if ($availability !== '' && in_array($availability, ['in_stock','low_stock','out_of_stock','backorder','preorder','discontinued'], true)) {
-  $where[] = "p.availability_status = :availability";
-  $params[':availability'] = $availability;
-}
-if ($status !== '' && in_array($status, ['active','inactive'], true)) {
-  $where[] = "p.is_active = :is_active";
-  $params[':is_active'] = ($status === 'active') ? 1 : 0;
-}
-
-$whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
-
-$countSt = $pdo->prepare("SELECT COUNT(*) FROM products p JOIN categories c ON c.id=p.category_id LEFT JOIN suppliers s ON s.id=p.supplier_id {$whereSql}");
-$countSt->execute($params);
-$total = (int)$countSt->fetchColumn();
-$totalPages = max(1, (int)ceil($total / $perPage));
-
-$sql = "SELECT p.id,p.name,p.sku,p.vendor_sku,p.brand,p.price,p.stock,p.is_active,p.availability_status,p.pack_size,p.moq,p.lead_time_days,
-               c.name AS cat, s.name AS supplier_name
-        FROM products p
-        JOIN categories c ON c.id=p.category_id
-        LEFT JOIN suppliers s ON s.id=p.supplier_id
-        {$whereSql}
-        ORDER BY p.created_at DESC, p.id DESC
-        LIMIT {$perPage} OFFSET {$offset}";
-$st = $pdo->prepare($sql);
-$st->execute($params);
-$prods = $st->fetchAll();
-
-function page_link(array $overrides = []): string {
-  $query = array_merge($_GET, $overrides);
-  return url('admin/products.php?' . http_build_query($query));
+$prods = $pdo->query("SELECT p.id,p.name,p.sku,p.brand,p.price,p.stock,p.is_active,c.name AS cat
+                      FROM products p JOIN categories c ON c.id=p.category_id
+                      ORDER BY p.created_at DESC, p.id DESC LIMIT 500")->fetchAll();
+$active = 0; $low = 0;
+foreach ($prods as $p) {
+  if (!empty($p['is_active'])) $active++;
+  if ((int)$p['stock'] <= 5) $low++;
 }
 ?>
 
-<h1>Products</h1>
-
-<div class="toolbar" style="justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
-  <a class="btn" href="<?php echo url('admin/products-new.php'); ?>">+ New Product</a>
-  <form method="get" action="<?php echo url('admin/products.php'); ?>" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
-    <div>
-      <label>Search</label>
-      <input type="text" name="q" value="<?php echo e($q); ?>" placeholder="Name, SKU, brand, supplier">
-    </div>
-    <div>
-      <label>Availability</label>
-      <select name="availability">
-        <option value="">All</option>
-        <?php foreach (['in_stock'=>'In stock','low_stock'=>'Low stock','out_of_stock'=>'Out of stock','backorder'=>'Backorder','preorder'=>'Pre-order','discontinued'=>'Discontinued'] as $key => $label): ?>
-          <option value="<?php echo e($key); ?>" <?php echo $availability === $key ? 'selected' : ''; ?>><?php echo e($label); ?></option>
-        <?php endforeach; ?>
-      </select>
-    </div>
-    <div>
-      <label>Status</label>
-      <select name="status">
-        <option value="">All</option>
-        <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>Active</option>
-        <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
-      </select>
-    </div>
-    <button class="btn secondary" type="submit">Apply</button>
-  </form>
-</div>
-
-<div class="card p" style="margin-bottom:16px">
-  <div class="muted">Commercial-ready product catalog fields now include supplier, vendor SKU, availability state, pack size, MOQ, and lead time metadata.</div>
-</div>
-
-<table class="table">
-  <tr>
-    <th>Name</th>
-    <th>Category</th>
-    <th>Supplier</th>
-    <th>Commercial</th>
-    <th style="width:140px">Price</th>
-    <th style="width:140px">Stock</th>
-    <th style="width:130px">Active</th>
-    <th style="width:90px">Save</th>
-    <th style="width:90px">Edit</th>
-  </tr>
-
-  <?php foreach($prods as $p): ?>
-    <?php $av = product_availability_meta((string)($p['availability_status'] ?? 'in_stock')); ?>
-    <tr>
-      <form action="<?php echo url('admin_actions/product.php'); ?>" method="post">
-        <?php csrf_field(); ?>
-        <input type="hidden" name="product_id" value="<?php echo (int)$p['id']; ?>">
-        <input type="hidden" name="id" value="<?php echo (int)$p['id']; ?>">
-
-        <td>
-          <strong><?php echo e($p['name']); ?></strong><br>
-          <span class="muted">SKU: <?php echo e($p['sku']); ?></span>
-          <?php if (!empty($p['vendor_sku'])): ?><br><span class="muted">Vendor SKU: <?php echo e($p['vendor_sku']); ?></span><?php endif; ?>
-        </td>
-        <td><?php echo e($p['cat']); ?></td>
-        <td><?php echo e($p['supplier_name'] ?: '—'); ?></td>
-        <td>
-          <span class="pill secondary"><?php echo e($av['label']); ?></span><br>
-          <span class="muted">
-            <?php if (!empty($p['pack_size'])): ?>Pack: <?php echo e($p['pack_size']); ?> · <?php endif; ?>
-            MOQ: <?php echo e((int)($p['moq'] ?? 1)); ?>
-            <?php if ((int)($p['lead_time_days'] ?? 0) > 0): ?> · Lead: <?php echo e((int)$p['lead_time_days']); ?>d<?php endif; ?>
-          </span>
-        </td>
-
-        <td><input type="number" step="0.01" name="price" value="<?php echo e($p['price']); ?>"></td>
-
-        <td>
-          <input type="number" name="stock" value="<?php echo e($p['stock']); ?>" style="max-width:110px">
-        </td>
-
-        <td>
-          <select name="is_active">
-            <option value="1" <?php echo $p['is_active']?'selected':''; ?>>Yes</option>
-            <option value="0" <?php echo !$p['is_active']?'selected':''; ?>>No</option>
-          </select>
-        </td>
-
-        <td><button class="btn" type="submit">Save</button></td>
-        <td><a class="btn secondary" href="<?php echo url('admin/products-edit.php?id='.$p['id']); ?>">Edit</a></td>
-      </form>
-    </tr>
-  <?php endforeach; ?>
-</table>
-
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:12px;flex-wrap:wrap">
-  <div class="muted">Showing <?php echo e(count($prods)); ?> of <?php echo e($total); ?> products</div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <?php if ($page > 1): ?>
-      <a class="btn ghost" href="<?php echo e(page_link(['page' => $page - 1])); ?>">Previous</a>
-    <?php endif; ?>
-    <span class="muted">Page <?php echo e($page); ?> of <?php echo e($totalPages); ?></span>
-    <?php if ($page < $totalPages): ?>
-      <a class="btn ghost" href="<?php echo e(page_link(['page' => $page + 1])); ?>">Next</a>
-    <?php endif; ?>
+<div class="admin-page-head">
+  <div>
+    <h1 class="admin-page-title">Product catalog ops</h1>
+    <p class="admin-page-sub">Premium product workspace for pricing, stock controls, visibility, and commercial catalog quality.</p>
   </div>
+  <div class="admin-page-actions">
+    <a class="btn" href="<?php echo url('admin/products-new.php'); ?>">+ New Product</a>
+    <a class="btn secondary" href="<?php echo url('pages/products.php'); ?>">View Public Catalog</a>
+  </div>
+</div>
+
+<div class="admin-stats-grid admin-stats-grid-tight">
+  <div class="admin-stat-card"><div class="admin-stat-label">Visible products</div><div class="admin-stat-value"><?php echo count($prods); ?></div><div class="admin-stat-meta">Latest 500 catalog rows shown</div></div>
+  <div class="admin-stat-card"><div class="admin-stat-label">Active</div><div class="admin-stat-value"><?php echo $active; ?></div><div class="admin-stat-meta">Customer-facing listings enabled</div></div>
+  <div class="admin-stat-card"><div class="admin-stat-label">Low stock</div><div class="admin-stat-value"><?php echo $low; ?></div><div class="admin-stat-meta">Products at or below 5 units</div></div>
+  <div class="admin-stat-card"><div class="admin-stat-label">Brands shown</div><div class="admin-stat-value"><?php echo count(array_unique(array_filter(array_map(fn($x)=>$x['brand'],$prods)))); ?></div><div class="admin-stat-meta">Commercial brand spread</div></div>
+</div>
+
+<div class="admin-table-shell">
+  <div class="admin-table-headline">
+    <div>
+      <h2 class="admin-panel-title">Catalog control table</h2>
+      <p class="admin-panel-sub">Inline pricing and stock edits with a more polished management surface.</p>
+    </div>
+  </div>
+  <table class="table table-premium table-products">
+    <tr>
+      <th>Name</th>
+      <th>SKU</th>
+      <th>Brand / Category</th>
+      <th>Price</th>
+      <th>Stock</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+
+    <?php foreach($prods as $p): ?>
+      <tr>
+        <form action="<?php echo url('admin_actions/product.php'); ?>" method="post">
+          <?php csrf_field(); ?>
+          <input type="hidden" name="product_id" value="<?php echo (int)$p['id']; ?>">
+          <input type="hidden" name="id" value="<?php echo (int)$p['id']; ?>">
+
+          <td>
+            <div class="admin-table-primary"><?php echo e($p['name']); ?></div>
+            <div class="admin-table-meta">Catalog product #<?php echo (int)$p['id']; ?></div>
+          </td>
+          <td><span class="admin-metric-pill"><?php echo e($p['sku']); ?></span></td>
+          <td>
+            <div class="admin-table-primary"><?php echo e($p['brand']); ?></div>
+            <div class="admin-table-meta"><?php echo e($p['cat']); ?></div>
+          </td>
+          <td><input type="number" step="0.01" name="price" value="<?php echo e($p['price']); ?>"></td>
+          <td>
+            <input type="number" name="stock" value="<?php echo e($p['stock']); ?>" style="max-width:110px">
+            <?php if((int)$p['stock']<=5): ?><div class="admin-table-meta"><span class="badge badge-warn">Low stock</span></div><?php endif; ?>
+          </td>
+          <td>
+            <select name="is_active">
+              <option value="1" <?php echo $p['is_active']?'selected':''; ?>>Active</option>
+              <option value="0" <?php echo !$p['is_active']?'selected':''; ?>>Hidden</option>
+            </select>
+          </td>
+          <td class="admin-table-actions-stack">
+            <button class="btn" type="submit">Save</button>
+            <a class="btn secondary" href="<?php echo url('admin/products-edit.php?id='.$p['id']); ?>">Edit</a>
+            <button class="btn danger" type="submit"
+              formaction="<?php echo url('admin_actions/product_delete.php'); ?>"
+              onclick="return confirm('Delete this product? This will remove its images and docs too.');">Delete</button>
+          </td>
+        </form>
+      </tr>
+    <?php endforeach; ?>
+  </table>
 </div>
 
 <?php require_once __DIR__.'/footer.php'; ?>

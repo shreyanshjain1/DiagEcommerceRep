@@ -1,72 +1,86 @@
 <?php require_once __DIR__.'/header.php'; require_once __DIR__.'/../config/csrf.php';
 
-$status = (string)($_GET['status'] ?? '');
-$q = trim((string)($_GET['q'] ?? ''));
-$page = page_param();
-$perPage = 20;
-
-$where = [];
+$status = $_GET['status'] ?? '';
+$where = '';
 $args = [];
 if (in_array($status, ['New','In Progress','Closed'], true)) {
-  $where[] = 'status = :s';
+  $where = "WHERE status=:s";
   $args[':s'] = $status;
-} else {
-  $status = '';
 }
-if ($q !== '') {
-  $where[] = '(company LIKE :q OR name LIKE :q OR email LIKE :q OR phone LIKE :q OR subject LIKE :q)';
-  $args[':q'] = '%' . $q . '%';
-}
-$whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
-
-$countStmt = $pdo->prepare("SELECT COUNT(*) FROM inquiries $whereSql");
-$countStmt->execute($args);
-$total = (int)$countStmt->fetchColumn();
-$pager = pagination_meta($total, $perPage, $page);
-
-$sql = "SELECT id,created_at,company,name,email,phone,subject,status FROM inquiries $whereSql ORDER BY created_at DESC, id DESC LIMIT :limit OFFSET :offset";
-$stmt = $pdo->prepare($sql);
-foreach ($args as $k => $v) $stmt->bindValue($k, $v);
-$stmt->bindValue(':limit', $pager['per_page'], PDO::PARAM_INT);
-$stmt->bindValue(':offset', $pager['offset'], PDO::PARAM_INT);
-$stmt->execute();
+$sql = "SELECT id,created_at,company,name,email,phone,subject,status FROM inquiries $where ORDER BY created_at DESC LIMIT 500";
+$stmt = $pdo->prepare($sql); $stmt->execute($args);
 $rows = $stmt->fetchAll();
+$newCount = 0; $progCount = 0; $closedCount = 0;
+foreach ($rows as $r) {
+  if ($r['status'] === 'New') $newCount++;
+  elseif ($r['status'] === 'In Progress') $progCount++;
+  elseif ($r['status'] === 'Closed') $closedCount++;
+}
+function inquiry_badge(string $status): string {
+  return match($status) {
+    'Closed' => 'badge-ok',
+    'In Progress' => 'badge-warn',
+    default => 'badge-bad',
+  };
+}
 ?>
-<h1>Inquiries</h1>
-<div class="toolbar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:end;margin-bottom:12px">
+<div class="admin-page-head">
   <div>
-    <a class="btn <?php echo $status === '' ? '' : 'ghost'; ?>" href="<?php echo url('admin/inquiries.php'); ?>">All</a>
-    <a class="btn <?php echo $status === 'New' ? '' : 'ghost'; ?>" href="<?php echo url('admin/inquiries.php?status=New'); ?>">New</a>
-    <a class="btn <?php echo $status === 'In Progress' ? '' : 'ghost'; ?>" href="<?php echo url('admin/inquiries.php?status=In+Progress'); ?>">In Progress</a>
-    <a class="btn <?php echo $status === 'Closed' ? '' : 'ghost'; ?>" href="<?php echo url('admin/inquiries.php?status=Closed'); ?>">Closed</a>
+    <h1 class="admin-page-title">Inquiry desk</h1>
+    <p class="admin-page-sub">Track inbound company and customer requests with a cleaner queue-style admin experience.</p>
   </div>
-  <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-    <?php if ($status !== ''): ?><input type="hidden" name="status" value="<?php echo e($status); ?>"><?php endif; ?>
-    <input type="text" name="q" value="<?php echo e($q); ?>" placeholder="Search company, contact, subject">
-    <button class="btn secondary" type="submit">Filter</button>
-    <a class="btn secondary" href="<?php echo url('admin/inquiries.php'); ?>">Clear</a>
-  </form>
+  <div class="admin-page-actions">
+    <span class="admin-chip success"><?php echo count($rows); ?> visible inquiries</span>
+  </div>
 </div>
 
-<div class="muted" style="margin-bottom:12px">Showing <?php echo (int)$pager['from']; ?>–<?php echo (int)$pager['to']; ?> of <?php echo (int)$pager['total']; ?> inquiries</div>
+<div class="admin-stats-grid admin-stats-grid-tight">
+  <div class="admin-stat-card"><div class="admin-stat-label">New</div><div class="admin-stat-value"><?php echo $newCount; ?></div><div class="admin-stat-meta">Fresh requests needing first touch</div></div>
+  <div class="admin-stat-card"><div class="admin-stat-label">In progress</div><div class="admin-stat-value"><?php echo $progCount; ?></div><div class="admin-stat-meta">Currently being handled</div></div>
+  <div class="admin-stat-card"><div class="admin-stat-label">Closed</div><div class="admin-stat-value"><?php echo $closedCount; ?></div><div class="admin-stat-meta">Resolved or archived items</div></div>
+  <div class="admin-stat-card"><div class="admin-stat-label">Filter</div><div class="admin-stat-value"><?php echo $status ?: 'All'; ?></div><div class="admin-stat-meta">Current queue view</div></div>
+</div>
 
-<table class="table">
-  <tr><th>Date</th><th>From</th><th>Contact</th><th>Subject</th><th>Status</th><th></th></tr>
-  <?php foreach($rows as $qrow): ?>
-    <tr>
-      <td><?php echo e($qrow['created_at']); ?></td>
-      <td><?php echo e($qrow['company'] ?: '—'); ?><br><?php echo e($qrow['name']); ?></td>
-      <td><?php echo e($qrow['email']); ?><br><?php echo e($qrow['phone'] ?: '—'); ?></td>
-      <td><?php echo e($qrow['subject']); ?></td>
-      <td><?php echo e($qrow['status']); ?></td>
-      <td>
-        <a class="btn" href="<?php echo url('admin/inquiry-view.php?id='.$qrow['id']); ?>">Open</a>
-      </td>
-    </tr>
-  <?php endforeach; ?>
-  <?php if (!$rows): ?>
-    <tr><td colspan="6" class="muted">No inquiries matched the current filter.</td></tr>
-  <?php endif; ?>
-</table>
-<?php echo pagination_links($pager); ?>
+<div class="admin-filter-bar">
+  <div class="admin-filter-tabs">
+    <a class="admin-tab <?php echo $status==='' ? 'active' : ''; ?>" href="<?php echo url('admin/inquiries.php'); ?>">All</a>
+    <a class="admin-tab <?php echo $status==='New' ? 'active' : ''; ?>" href="<?php echo url('admin/inquiries.php?status=New'); ?>">New</a>
+    <a class="admin-tab <?php echo $status==='In Progress' ? 'active' : ''; ?>" href="<?php echo url('admin/inquiries.php?status=In+Progress'); ?>">In Progress</a>
+    <a class="admin-tab <?php echo $status==='Closed' ? 'active' : ''; ?>" href="<?php echo url('admin/inquiries.php?status=Closed'); ?>">Closed</a>
+  </div>
+</div>
+
+<div class="admin-table-shell">
+  <div class="admin-table-headline">
+    <div>
+      <h2 class="admin-panel-title">Inquiry queue</h2>
+      <p class="admin-panel-sub">A polished support and sales-intake view for the repo surface.</p>
+    </div>
+  </div>
+  <table class="table table-premium">
+    <tr><th>Date</th><th>From</th><th>Contact</th><th>Subject</th><th>Status</th><th></th></tr>
+    <?php foreach($rows as $q): ?>
+      <tr>
+        <td>
+          <div class="admin-table-primary"><?php echo e(date('M d, Y', strtotime($q['created_at']))); ?></div>
+          <div class="admin-table-meta"><?php echo e(date('g:i A', strtotime($q['created_at']))); ?></div>
+        </td>
+        <td>
+          <div class="admin-table-primary"><?php echo e($q['company'] ?: '—'); ?></div>
+          <div class="admin-table-meta"><?php echo e($q['name']); ?></div>
+        </td>
+        <td>
+          <div class="admin-table-primary"><?php echo e($q['email']); ?></div>
+          <div class="admin-table-meta"><?php echo e($q['phone'] ?: 'No phone on file'); ?></div>
+        </td>
+        <td>
+          <div class="admin-table-primary"><?php echo e($q['subject']); ?></div>
+          <div class="admin-table-meta">Inquiry #<?php echo (int)$q['id']; ?></div>
+        </td>
+        <td><span class="badge <?php echo inquiry_badge((string)$q['status']); ?>"><?php echo e($q['status']); ?></span></td>
+        <td class="admin-table-actions-cell"><a class="btn" href="<?php echo url('admin/inquiry-view.php?id='.$q['id']); ?>">Open</a></td>
+      </tr>
+    <?php endforeach; ?>
+  </table>
+</div>
 <?php require_once __DIR__.'/footer.php'; ?>
