@@ -1,0 +1,35 @@
+/* ===== Pharmastar Admin Theme (soft professional) ===== */
+:root{
+  --adm-bg1: #f7fbff;
+  --adm-bg2: #f4fff8;
+  --adm-card: rgba(255,255,255,.92);
+  --adm-border: rgba(226,232,240,.9);
+  --adm-shadow: 0 18px 45px rgba(2,6,23,.08);
+}
+
+body.admin{
+  background: radial-gradient(1200px 600px at 15% 10%, rgba(34,197,94,.12), transparent 55%),
+              radial-gradient(900px 520px at 85% 0%, rgba(59,130,246,.14), transparent 60%),
+              linear-gradient(180deg, var(--adm-bg1), var(--adm-bg2));
+  background-attachment: fixed;
+}
+
+body.admin .card{
+  background: var(--adm-card) !important;
+  border: 1px solid var(--adm-border) !important;
+  box-shadow: var(--adm-shadow) !important;
+  backdrop-filter: blur(10px);
+}
+
+body.admin .table{
+  background: rgba(255,255,255,.92);
+  border: 1px solid var(--adm-border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+body.admin .table th{
+  background: rgba(236,253,245,.55);
+  color:#064e3b;
+  font-weight: 900;
+}

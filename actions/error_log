@@ -1,0 +1,25 @@
+[17-Oct-2025 07:01:55 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'INSERT INTO' in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php:48
+Stack trace:
+#0 /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php(48): PDOStatement->execute()
+#1 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php on line 48
+[17-Oct-2025 07:01:57 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'INSERT INTO' in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php:48
+Stack trace:
+#0 /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php(48): PDOStatement->execute()
+#1 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php on line 48
+[17-Oct-2025 07:03:47 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'INSERT INTO' in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php:48
+Stack trace:
+#0 /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php(48): PDOStatement->execute()
+#1 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php on line 48
+[17-Oct-2025 07:05:57 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'INSERT INTO' in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php:48
+Stack trace:
+#0 /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php(48): PDOStatement->execute()
+#1 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php on line 48
+[17-Oct-2025 07:08:25 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'INSERT INTO' in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php:48
+Stack trace:
+#0 /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php(48): PDOStatement->execute()
+#1 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/actions/quote.php on line 48

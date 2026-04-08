@@ -1,0 +1,20 @@
+<?php
+require_once __DIR__.'/../includes/helpers.php';
+require_once __DIR__.'/../includes/header.php';
+?>
+
+<div class="page-head">
+  <h1>Checkout Disabled</h1>
+  <p class="muted">This website currently works on an RFQ (Request for Quotation) basis. Online checkout / ordering is disabled.</p>
+</div>
+
+<div class="card p">
+  <p style="margin-top:0">To request pricing, add products to your RFQ list and submit.</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn" href="<?php echo url('pages/products.php'); ?>">Browse products</a>
+    <a class="btn secondary" href="<?php echo url('pages/cart.php'); ?>">Open RFQ</a>
+    <a class="btn ghost" href="<?php echo url('pages/quotes.php'); ?>">My RFQs</a>
+  </div>
+</div>
+
+<?php require_once __DIR__.'/../includes/footer.php'; ?>

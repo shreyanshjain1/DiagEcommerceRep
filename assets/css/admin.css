@@ -1,0 +1,113 @@
+/* =========================
+   Admin UI – Pharmastar
+   ========================= */
+:root{
+  --admin-bg:#f2fff5;
+  --admin-card:#ffffff;
+  --admin-border:#e5e7eb;
+  --admin-text:#0f172a;
+  --admin-muted:#6b7280;
+
+  --admin-accent:#22c55e;      /* green */
+  --admin-accent-600:#16a34a;
+  --admin-accent-50:#eafff3;
+
+  --admin-warn:#fde68a;        /* yellow */
+  --admin-bad:#ef4444;         /* red */
+
+  --shadow-sm:0 2px 8px rgba(2, 6, 23, .05);
+  --shadow-md:0 10px 24px rgba(2, 6, 23, .10);
+}
+
+html,body{background:var(--admin-bg);color:var(--admin-text)}
+.container{max-width:1240px;margin:0 auto;padding:0 16px}
+
+/* Layout */
+.admin-layout{display:grid;grid-template-columns:260px 1fr;gap:18px;margin-top:18px}
+.admin-aside{background:var(--admin-card);border:1px solid var(--admin-border);border-radius:16px;padding:14px;box-shadow:var(--shadow-sm);position:sticky;top:76px;height:fit-content}
+.admin-aside strong{display:block;margin:6px 0 10px;color:#134e4a}
+.admin-aside a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;color:#14532d}
+.admin-aside a:hover{background:var(--admin-accent-50)}
+.admin-aside a.active{background:var(--admin-accent-50);font-weight:700}
+
+.admin-main{background:var(--admin-card);border:1px solid var(--admin-border);border-radius:16px;padding:18px;box-shadow:var(--shadow-sm)}
+
+/* Top header (already from storefront CSS) */
+
+/* KPIs */
+.kpis{display:grid;gap:14px;grid-template-columns:repeat(4,1fr);margin-top:4px}
+.kpi{background:#fff;border:1px solid var(--admin-border);border-radius:16px;padding:16px;box-shadow:var(--shadow-sm)}
+.kpi h3{margin:0 0 8px;color:#134e4a}
+.kpi p{margin:0;font-size:28px;font-weight:800}
+
+/* Buttons */
+.btn{display:inline-block;background:var(--admin-accent);color:#fff;padding:10px 14px;border-radius:12px;font-weight:700;transition:.15s}
+.btn:hover{transform:translateY(-1px);background:var(--admin-accent-600)}
+.btn.ghost{background:#fff;color:#14532d;border:1px solid var(--admin-border)}
+.btn.ghost:hover{background:var(--admin-accent-50)}
+
+/* Toolbar */
+.toolbar{display:flex;gap:12px;justify-content:space-between;align-items:center;margin-bottom:12px}
+.toolbar form{display:flex;gap:8px}
+.toolbar input[type="text"]{padding:10px;border:1px solid var(--admin-border);border-radius:12px}
+
+/* Cards */
+.card{background:#fff;border:1px solid var(--admin-border);border-radius:16px;box-shadow:var(--shadow-sm);overflow:hidden}
+.card .p{padding:14px}
+
+/* Tables */
+.table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--admin-border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.table th,.table td{padding:12px 12px;border-bottom:1px solid var(--admin-border);text-align:left}
+.table tr:last-child td{border-bottom:0}
+.table th{background:#fafafa;color:#334155;font-weight:700}
+.table input[type="number"], .table select, .table input[type="text"]{padding:8px;border:1px solid var(--admin-border);border-radius:10px;min-width:90px}
+
+/* Badges */
+.badge{display:inline-block;border-radius:999px;padding:2px 8px;font-size:12px}
+.badge-warn{background:var(--admin-warn);color:#3b3b3b}
+.badge-bad{background:#fee2e2;color:#7f1d1d}
+.badge-ok{background:var(--admin-accent-50);color:#14532d;border:1px solid var(--admin-border)}
+
+/* Order view layout */
+.order-wrap{display:grid;grid-template-columns:1fr 340px;gap:18px}
+.order-card{background:#fff;border:1px solid var(--admin-border);border-radius:16px;box-shadow:var(--shadow-sm)}
+.order-card .p{padding:16px}
+.order-title{font-size:28px;font-weight:900;margin:0 0 6px}
+.order-sub{color:var(--admin-muted);margin:0 0 14px}
+.total-box h3{margin:0 0 8px}
+.total-box .sum{font-weight:900;font-size:18px}
+
+/* Forms */
+.form{background:#fff;border:1px solid var(--admin-border);border-radius:16px;padding:16px;box-shadow:var(--shadow-sm)}
+.form .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form label{font-weight:700;display:block;margin:8px 0 6px}
+.form input,.form select,.form textarea{width:100%;padding:10px;border:1px solid var(--admin-border);border-radius:12px}
+
+/* Utilities */
+.m0{margin:0}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt24{margin-top:24px}
+.grid{display:grid;gap:16px}
+.grid.cols-2{grid-template-columns:repeat(2,1fr)}
+
+/* Responsive */
+@media(max-width:1024px){
+  .admin-layout{grid-template-columns:1fr}
+  .admin-aside{position:static}
+  .order-wrap{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:640px){
+  .kpis{grid-template-columns:1fr}
+}
+
+/* Inquiries table layout */
+.table.inq{table-layout:fixed}
+.nowrap{white-space:nowrap}
+.clip{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-cell{text-align:center}
+
+/* Status pills (make them pop + readable) */
+.pill{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.2px}
+.pill-new{background:#fee2e2;color:#7f1d1d;border:1px solid #fecaca}
+.pill-prog{background:#fef9c3;color:#713f12;border:1px solid #fde68a}
+.pill-closed{background:#dcfce7;color:#14532d;border:1px solid #bbf7d0}
+

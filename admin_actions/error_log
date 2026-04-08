@@ -1,0 +1,215 @@
+[07-Jan-2026 01:18:07 UTC] product_update failed: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`pharmastar_db`.`product_images`, CONSTRAINT `fk_product_images_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE)
+[07-Jan-2026 05:54:01 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 3
+[07-Jan-2026 05:54:01 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 3
+[07-Jan-2026 05:54:18 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 3
+[07-Jan-2026 05:54:18 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 3
+[07-Jan-2026 05:54:30 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 3
+[07-Jan-2026 05:54:30 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 3
+[07-Jan-2026 05:54:40 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 3
+[07-Jan-2026 05:54:40 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 3
+[07-Jan-2026 06:34:42 UTC] SPEC_DEBUG product_id=23 keys=12 saved=2
+[08-Jan-2026 01:07:36 UTC] SPEC_DEBUG product_id=23 keys=12 saved=2
+[08-Jan-2026 01:18:13 UTC] SPEC_DEBUG product_id=23 keys=12 saved=12
+[08-Jan-2026 01:18:57 UTC] SPEC_DEBUG product_id=23 keys=12 saved=12
+[08-Jan-2026 01:24:23 UTC] SPEC_DEBUG product_id=23 keys=12 saved=12
+[08-Jan-2026 01:34:58 UTC] SPEC_DEBUG product_id=2 keys=12 saved=12
+[08-Jan-2026 01:34:58 UTC] SPEC_DEBUG product_id=2 keys=12 saved=12
+[08-Jan-2026 01:34:58 UTC] SPEC_DEBUG product_id=2 keys=12 saved=12
+[08-Jan-2026 01:34:59 UTC] SPEC_DEBUG product_id=2 keys=12 saved=12
+[08-Jan-2026 01:34:59 UTC] SPEC_DEBUG product_id=2 keys=12 saved=12
+[08-Jan-2026 01:35:03 UTC] SPEC_DEBUG product_id=2 keys=12 saved=12
+[08-Jan-2026 01:37:59 UTC] SPEC_DEBUG product_id=2 keys=12 saved=12
+[08-Jan-2026 01:41:07 UTC] SPEC_DEBUG product_id=2 keys=12 saved=12
+[08-Jan-2026 01:47:03 UTC] SPEC_DEBUG product_id=5 keys=12 saved=0
+[08-Jan-2026 02:21:28 UTC] SPEC_DEBUG product_id=5 keys=12 saved=10
+[08-Jan-2026 02:23:45 UTC] SPEC_DEBUG product_id=5 keys=12 saved=10
+[08-Jan-2026 02:45:13 UTC] SPEC_DEBUG product_id=6 keys=12 saved=2
+[08-Jan-2026 02:45:28 UTC] SPEC_DEBUG product_id=6 keys=12 saved=2
+[08-Jan-2026 02:46:28 UTC] SPEC_DEBUG product_id=6 keys=12 saved=2
+[08-Jan-2026 03:01:47 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 03:01:47 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 03:01:47 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 03:01:48 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 03:01:48 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 03:01:48 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 03:03:27 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 03:06:17 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 03:06:29 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 03:06:41 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 05:46:16 UTC] SPEC_DEBUG product_id=7 keys=12 saved=0
+[08-Jan-2026 05:46:31 UTC] SPEC_DEBUG product_id=7 keys=12 saved=0
+[08-Jan-2026 05:47:28 UTC] SPEC_DEBUG product_id=7 keys=12 saved=0
+[08-Jan-2026 05:52:18 UTC] SPEC_DEBUG product_id=7 keys=12 saved=8
+[08-Jan-2026 05:53:33 UTC] SPEC_DEBUG product_id=7 keys=12 saved=10
+[08-Jan-2026 05:56:41 UTC] SPEC_DEBUG product_id=7 keys=12 saved=10
+[08-Jan-2026 05:57:37 UTC] SPEC_DEBUG product_id=6 keys=12 saved=10
+[08-Jan-2026 06:07:18 UTC] SPEC_DEBUG product_id=10 keys=12 saved=2
+[08-Jan-2026 06:15:10 UTC] SPEC_DEBUG product_id=10 keys=12 saved=8
+[08-Jan-2026 06:16:07 UTC] SPEC_DEBUG product_id=10 keys=12 saved=8
+[08-Jan-2026 06:16:59 UTC] SPEC_DEBUG product_id=10 keys=12 saved=9
+[08-Jan-2026 06:17:41 UTC] SPEC_DEBUG product_id=10 keys=12 saved=9
+[08-Jan-2026 06:20:23 UTC] SPEC_DEBUG product_id=9 keys=12 saved=2
+[08-Jan-2026 07:05:13 UTC] SPEC_DEBUG product_id=9 keys=12 saved=0
+[08-Jan-2026 07:09:04 UTC] SPEC_DEBUG product_id=9 keys=12 saved=1
+[08-Jan-2026 07:12:45 UTC] SPEC_DEBUG product_id=9 keys=12 saved=2
+[08-Jan-2026 07:16:17 UTC] SPEC_DEBUG product_id=9 keys=12 saved=6
+[08-Jan-2026 07:18:07 UTC] SPEC_DEBUG product_id=9 keys=12 saved=9
+[08-Jan-2026 07:27:45 UTC] SPEC_DEBUG product_id=8 keys=12 saved=2
+[08-Jan-2026 07:37:09 UTC] SPEC_DEBUG product_id=8 keys=12 saved=2
+[08-Jan-2026 07:37:45 UTC] SPEC_DEBUG product_id=8 keys=12 saved=0
+[08-Jan-2026 07:39:31 UTC] SPEC_DEBUG product_id=8 keys=12 saved=0
+[08-Jan-2026 07:40:21 UTC] SPEC_DEBUG product_id=8 keys=12 saved=0
+[08-Jan-2026 07:41:56 UTC] SPEC_DEBUG product_id=8 keys=12 saved=0
+[08-Jan-2026 07:42:48 UTC] SPEC_DEBUG product_id=8 keys=12 saved=0
+[08-Jan-2026 07:45:11 UTC] SPEC_DEBUG product_id=8 keys=12 saved=0
+[08-Jan-2026 07:45:44 UTC] SPEC_DEBUG product_id=8 keys=12 saved=0
+[08-Jan-2026 08:00:16 UTC] SPEC_DEBUG product_id=8 keys=12 saved=10
+[08-Jan-2026 08:00:20 UTC] SPEC_DEBUG product_id=8 keys=12 saved=10
+[08-Jan-2026 08:55:23 UTC] SPEC_DEBUG product_id=12 keys=12 saved=11
+[08-Jan-2026 08:55:32 UTC] SPEC_DEBUG product_id=12 keys=12 saved=11
+[08-Jan-2026 08:56:43 UTC] SPEC_DEBUG product_id=12 keys=12 saved=11
+[08-Jan-2026 08:57:49 UTC] SPEC_DEBUG product_id=12 keys=12 saved=11
+[08-Jan-2026 08:59:37 UTC] SPEC_DEBUG product_id=12 keys=12 saved=11
+[08-Jan-2026 09:01:56 UTC] SPEC_DEBUG product_id=12 keys=12 saved=11
+[08-Jan-2026 09:03:29 UTC] SPEC_DEBUG product_id=12 keys=12 saved=11
+[08-Jan-2026 09:19:04 UTC] SPEC_DEBUG product_id=11 keys=12 saved=9
+[08-Jan-2026 09:21:25 UTC] SPEC_DEBUG product_id=11 keys=12 saved=9
+[08-Jan-2026 09:23:05 UTC] SPEC_DEBUG product_id=11 keys=12 saved=9
+[09-Jan-2026 01:48:24 UTC] SPEC_DEBUG product_id=13 keys=12 saved=2
+[09-Jan-2026 01:49:18 UTC] SPEC_DEBUG product_id=13 keys=12 saved=0
+[09-Jan-2026 01:52:25 UTC] SPEC_DEBUG product_id=13 keys=12 saved=0
+[09-Jan-2026 02:06:16 UTC] SPEC_DEBUG product_id=13 keys=12 saved=10
+[09-Jan-2026 02:07:17 UTC] SPEC_DEBUG product_id=13 keys=12 saved=10
+[09-Jan-2026 02:09:36 UTC] SPEC_DEBUG product_id=13 keys=12 saved=10
+[09-Jan-2026 02:14:44 UTC] SPEC_DEBUG product_id=13 keys=12 saved=10
+[09-Jan-2026 02:21:09 UTC] SPEC_DEBUG product_id=13 keys=12 saved=10
+[09-Jan-2026 02:28:20 UTC] SPEC_DEBUG product_id=14 keys=12 saved=2
+[09-Jan-2026 02:28:31 UTC] SPEC_DEBUG product_id=14 keys=12 saved=2
+[09-Jan-2026 02:31:43 UTC] SPEC_DEBUG product_id=14 keys=12 saved=2
+[09-Jan-2026 02:37:31 UTC] SPEC_DEBUG product_id=14 keys=12 saved=1
+[09-Jan-2026 02:38:24 UTC] SPEC_DEBUG product_id=14 keys=12 saved=1
+[09-Jan-2026 02:38:24 UTC] SPEC_DEBUG product_id=14 keys=12 saved=1
+[09-Jan-2026 02:38:25 UTC] SPEC_DEBUG product_id=14 keys=12 saved=1
+[09-Jan-2026 02:38:25 UTC] SPEC_DEBUG product_id=14 keys=12 saved=1
+[09-Jan-2026 02:38:25 UTC] SPEC_DEBUG product_id=14 keys=12 saved=1
+[09-Jan-2026 02:40:05 UTC] SPEC_DEBUG product_id=15 keys=12 saved=0
+[09-Jan-2026 02:46:47 UTC] SPEC_DEBUG product_id=15 keys=12 saved=11
+[09-Jan-2026 02:47:05 UTC] SPEC_DEBUG product_id=15 keys=12 saved=11
+[09-Jan-2026 02:49:14 UTC] SPEC_DEBUG product_id=15 keys=12 saved=11
+[09-Jan-2026 03:05:33 UTC] SPEC_DEBUG product_id=19 keys=12 saved=2
+[09-Jan-2026 03:06:15 UTC] SPEC_DEBUG product_id=18 keys=12 saved=2
+[09-Jan-2026 03:06:48 UTC] SPEC_DEBUG product_id=17 keys=12 saved=2
+[09-Jan-2026 03:07:18 UTC] SPEC_DEBUG product_id=16 keys=12 saved=2
+[09-Jan-2026 03:10:14 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:10:14 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:10:21 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:10:21 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:10:25 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:10:25 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:10:33 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:10:33 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:10:41 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:10:41 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:12:27 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:12:27 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 03:17:53 UTC] SPEC_DEBUG product_id=3 keys=12 saved=2
+[09-Jan-2026 03:20:12 UTC] SPEC_DEBUG product_id=3 keys=12 saved=2
+[09-Jan-2026 03:20:21 UTC] SPEC_DEBUG product_id=3 keys=12 saved=2
+[09-Jan-2026 03:23:44 UTC] SPEC_DEBUG product_id=3 keys=12 saved=2
+[09-Jan-2026 03:23:57 UTC] SPEC_DEBUG product_id=3 keys=12 saved=0
+[09-Jan-2026 03:29:49 UTC] SPEC_DEBUG product_id=3 keys=12 saved=11
+[09-Jan-2026 03:38:10 UTC] SPEC_DEBUG product_id=4 keys=12 saved=0
+[09-Jan-2026 03:47:03 UTC] SPEC_DEBUG product_id=4 keys=12 saved=10
+[09-Jan-2026 03:49:54 UTC] SPEC_DEBUG product_id=4 keys=12 saved=10
+[09-Jan-2026 03:50:00 UTC] SPEC_DEBUG product_id=4 keys=12 saved=10
+[09-Jan-2026 03:50:30 UTC] SPEC_DEBUG product_id=4 keys=12 saved=10
+[09-Jan-2026 03:54:09 UTC] SPEC_DEBUG product_id=4 keys=12 saved=10
+[09-Jan-2026 03:56:22 UTC] SPEC_DEBUG product_id=4 keys=12 saved=10
+[09-Jan-2026 04:03:43 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 04:03:43 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 04:04:25 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 04:04:25 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 07:39:53 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[09-Jan-2026 07:39:53 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[12-Jan-2026 02:11:45 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[12-Jan-2026 02:11:45 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[12-Jan-2026 02:12:16 UTC] PHP Warning:  require_once(/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php): Failed to open stream: No such file or directory in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[12-Jan-2026 02:12:16 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/sw3q2k4ch4pp/public_html/ecom/admin_actions/../includes/auth.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php:4
+Stack trace:
+#0 {main}
+  thrown in /home/sw3q2k4ch4pp/public_html/ecom/admin_actions/products_new.php on line 4
+[14-Jan-2026 01:05:52 UTC] SPEC_DEBUG product_id=26 keys=12 saved=7
+[14-Jan-2026 01:06:29 UTC] SPEC_DEBUG product_id=26 keys=12 saved=7
+[14-Jan-2026 01:07:10 UTC] SPEC_DEBUG product_id=26 keys=12 saved=7
+[14-Jan-2026 01:09:12 UTC] SPEC_DEBUG product_id=26 keys=12 saved=7
+[14-Jan-2026 01:20:49 UTC] SPEC_DEBUG product_id=27 keys=12 saved=0
+[14-Jan-2026 01:22:17 UTC] SPEC_DEBUG product_id=27 keys=12 saved=0
+[14-Jan-2026 01:22:27 UTC] SPEC_DEBUG product_id=27 keys=12 saved=0
+[14-Jan-2026 01:28:30 UTC] SPEC_DEBUG product_id=25 keys=12 saved=2
+[14-Jan-2026 01:28:34 UTC] SPEC_DEBUG product_id=27 keys=12 saved=0
+[14-Jan-2026 01:30:37 UTC] SPEC_DEBUG product_id=25 keys=12 saved=2
+[14-Jan-2026 01:32:33 UTC] SPEC_DEBUG product_id=25 keys=12 saved=3
+[14-Jan-2026 01:34:21 UTC] SPEC_DEBUG product_id=25 keys=12 saved=8
+[14-Jan-2026 01:35:24 UTC] SPEC_DEBUG product_id=25 keys=12 saved=8
+[14-Jan-2026 01:38:52 UTC] SPEC_DEBUG product_id=25 keys=12 saved=8
+[14-Jan-2026 01:38:55 UTC] SPEC_DEBUG product_id=27 keys=12 saved=0
+[14-Jan-2026 01:40:20 UTC] SPEC_DEBUG product_id=25 keys=12 saved=8
+[14-Jan-2026 01:41:18 UTC] SPEC_DEBUG product_id=25 keys=12 saved=8
+[14-Jan-2026 01:42:37 UTC] SPEC_DEBUG product_id=25 keys=12 saved=8
+[14-Jan-2026 01:49:21 UTC] SPEC_DEBUG product_id=13 keys=12 saved=10
+[14-Jan-2026 01:52:06 UTC] SPEC_DEBUG product_id=27 keys=12 saved=1
+[14-Jan-2026 01:53:05 UTC] SPEC_DEBUG product_id=28 keys=12 saved=1
+[14-Jan-2026 01:53:25 UTC] SPEC_DEBUG product_id=28 keys=12 saved=1
+[14-Jan-2026 01:53:38 UTC] SPEC_DEBUG product_id=28 keys=12 saved=1
+[14-Jan-2026 01:54:08 UTC] SPEC_DEBUG product_id=28 keys=12 saved=1
+[14-Jan-2026 01:56:44 UTC] SPEC_DEBUG product_id=29 keys=12 saved=1
+[14-Jan-2026 02:01:52 UTC] SPEC_DEBUG product_id=29 keys=12 saved=1
+[14-Jan-2026 04:24:56 UTC] SPEC_DEBUG product_id=31 keys=12 saved=2
+[14-Jan-2026 04:36:06 UTC] SPEC_DEBUG product_id=32 keys=12 saved=2
+[14-Jan-2026 05:11:36 UTC] SPEC_DEBUG product_id=33 keys=12 saved=2
+[14-Jan-2026 05:12:38 UTC] SPEC_DEBUG product_id=33 keys=12 saved=2
+[14-Jan-2026 05:13:17 UTC] SPEC_DEBUG product_id=33 keys=12 saved=2
+[15-Jan-2026 07:50:33 UTC] SPEC_DEBUG product_id=39 keys=12 saved=4
+[15-Jan-2026 08:30:40 UTC] SPEC_DEBUG product_id=41 keys=12 saved=3
