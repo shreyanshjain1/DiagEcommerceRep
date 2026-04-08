@@ -38,7 +38,7 @@ $user = $stmt->fetch();
     </div>
   </div>
   <p style="margin-top:12px">
-    <a class="btn" href="<?php echo url('pages/orders.php'); ?>">View Orders</a>
+    <a class="btn" href="<?php echo url('pages/quotes.php'); ?>">View My RFQs</a>
     <a class="btn" href="<?php echo url('actions/auth.php'); ?>?action=logout">Logout</a>
   </p>
 </div>

@@ -9,7 +9,7 @@ require_once __DIR__.'/../includes/header.php';
 </div>
 
 <div class="card p">
-  <p style="margin-top:0">To request pricing, add products to your RFQ list and submit.</p>
+  <p style="margin-top:0">Use the RFQ flow to request pricing, submit requirements, and track quotation progress.</p>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
     <a class="btn" href="<?php echo url('pages/products.php'); ?>">Browse products</a>
     <a class="btn secondary" href="<?php echo url('pages/cart.php'); ?>">Open RFQ</a>

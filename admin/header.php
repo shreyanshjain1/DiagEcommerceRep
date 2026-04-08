@@ -34,8 +34,8 @@
     <strong>Navigation</strong>
     <a href="<?php echo url('admin/index.php'); ?>">Dashboard</a>
     <a href="<?php echo url('admin/inquiries.php'); ?>">Inquiries</a>
-    <a href="<?php echo url('admin/orders.php'); ?>">Orders</a>
     <a href="<?php echo url('admin/rfqs.php'); ?>">RFQs</a>
+    <a href="<?php echo url('admin/orders.php'); ?>">Legacy Orders</a>
     <a href="<?php echo url('admin/products.php'); ?>">Products</a>
     <a href="<?php echo url('admin/products-new.php'); ?>">New Product</a>
     <a href="<?php echo url('admin/users.php'); ?>">Users</a>
