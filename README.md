@@ -6,14 +6,11 @@
 ## Quick Setup (cPanel / Localhost)
 1. Create a MySQL database (e.g., `pharmastar_db`).
 2. Import `database.sql`.
-3. Edit `config/db.php` with your DB credentials and admin email.
+3. Copy `config/db.local.example.php` to `config/db.local.php` and add your DB credentials and admin email there.
 4. Upload the whole folder to your document root. If using a subfolder, adjust includes/links or place contents directly in `public_html`.
 5. Ensure `uploads/` is writable if you plan to upload files.
-6. Login with seeded accounts (from `database.sql`):
-   - **Admin** (for `/admin`):
-     - Email: `admin@pharmastar.local`
-     - Password: `Admin@123`
-   - You can create customer accounts via `/pages/signup.php`.
+6. Create or update your admin account after import. Do not keep default demo credentials in production.
+7. You can create customer accounts via `/pages/signup.php`.
 
 ## Folder Structure
 - `config/` – DB connection & CSRF utilities  

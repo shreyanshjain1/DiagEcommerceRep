@@ -1,0 +1,7 @@
+/config/db.local.php
+/config/*.local.php
+/uploads/
+/vendor/
+/node_modules/
+.DS_Store
+Thumbs.db
