@@ -2,7 +2,7 @@
 
 ![PHP](https://img.shields.io/badge/PHP-Procedural-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-Relational-4479A1?logo=mysql&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Recruiter%20Showcase-0A7EA4)
+![Status](https://img.shields.io/badge/Status-Deployed%20-0A7EA4)
 ![Workflow](https://img.shields.io/badge/Workflow-RFQ%20First-1F8A70)
 ![Security](https://img.shields.io/badge/Security-CSRF%20%7C%20Session%20Hardening-8E44AD)
 ![CI](https://img.shields.io/badge/GitHub%20Actions-PHP%20Lint-2088FF?logo=githubactions&logoColor=white)
