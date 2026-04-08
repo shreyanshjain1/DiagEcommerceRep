@@ -73,6 +73,64 @@ function redirect_with_query(string $path, array $params = []): never {
   exit;
 }
 
+
+function qparam(string $key, $default = null) {
+  return $_GET[$key] ?? $default;
+}
+
+function page_param(string $key = 'page'): int {
+  $value = (int)($_GET[$key] ?? 1);
+  return $value > 0 ? $value : 1;
+}
+
+function pagination_meta(int $total, int $perPage, int $page): array {
+  $perPage = max(1, $perPage);
+  $totalPages = max(1, (int)ceil($total / $perPage));
+  $page = max(1, min($page, $totalPages));
+  $offset = ($page - 1) * $perPage;
+  return [
+    'total' => $total,
+    'per_page' => $perPage,
+    'page' => $page,
+    'total_pages' => $totalPages,
+    'offset' => $offset,
+    'from' => $total > 0 ? $offset + 1 : 0,
+    'to' => min($total, $offset + $perPage),
+  ];
+}
+
+function build_query_url(array $overrides = []): string {
+  $query = $_GET;
+  foreach ($overrides as $k => $v) {
+    if ($v === null || $v === '') unset($query[$k]);
+    else $query[$k] = $v;
+  }
+  $path = strtok((string)($_SERVER['REQUEST_URI'] ?? ''), '?') ?: '';
+  $qs = http_build_query($query);
+  return $path . ($qs !== '' ? '?' . $qs : '');
+}
+
+function pagination_links(array $meta, int $window = 2): string {
+  if (($meta['total_pages'] ?? 1) <= 1) return '';
+  $page = (int)$meta['page'];
+  $totalPages = (int)$meta['total_pages'];
+  $start = max(1, $page - $window);
+  $end = min($totalPages, $page + $window);
+  $html = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px">';
+  if ($page > 1) {
+    $html .= '<a class="btn secondary" href="' . e(build_query_url(['page' => $page - 1])) . '">Prev</a>';
+  }
+  for ($i = $start; $i <= $end; $i++) {
+    $class = $i === $page ? 'btn' : 'btn secondary';
+    $html .= '<a class="' . $class . '" href="' . e(build_query_url(['page' => $i])) . '">' . $i . '</a>';
+  }
+  if ($page < $totalPages) {
+    $html .= '<a class="btn secondary" href="' . e(build_query_url(['page' => $page + 1])) . '">Next</a>';
+  }
+  $html .= '</div>';
+  return $html;
+}
+
 function admin_temp_password(int $length = 12): string {
   $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
   $max = strlen($alphabet) - 1;

@@ -1,37 +1,66 @@
 <?php
 require_once __DIR__.'/header.php';
 
-$status = $_GET['status'] ?? 'submitted';
+$status = (string)($_GET['status'] ?? 'submitted');
 $allowed = ['submitted','draft','quoted','closed','all'];
-if (!in_array($status,$allowed,true)) $status = 'submitted';
+if (!in_array($status, $allowed, true)) $status = 'submitted';
 
-$where = '';
+$q = trim((string)($_GET['q'] ?? ''));
+$page = page_param();
+$perPage = 20;
+
+$where = [];
 $params = [];
 if ($status !== 'all') {
-  $where = 'WHERE q.status = :st';
+  $where[] = 'q.status = :st';
   $params[':st'] = $status;
 }
+if ($q !== '') {
+  $where[] = '(q.quote_number LIKE :q OR q.name LIKE :q OR q.company LIKE :q OR q.email LIKE :q OR q.phone LIKE :q)';
+  $params[':q'] = '%' . $q . '%';
+}
+$whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM quotes q $whereSql");
+$countStmt->execute($params);
+$total = (int)$countStmt->fetchColumn();
+$pager = pagination_meta($total, $perPage, $page);
 
 $sql = "SELECT q.id,q.quote_number,q.status,q.total,q.name,q.company,q.email,q.phone,q.created_at,
                (SELECT COUNT(*) FROM quote_items qi WHERE qi.quote_id=q.id) AS item_count
         FROM quotes q
-        $where
-        ORDER BY q.updated_at DESC
-        LIMIT 500";
+        $whereSql
+        ORDER BY q.updated_at DESC, q.id DESC
+        LIMIT :limit OFFSET :offset";
 $st = $pdo->prepare($sql);
-$st->execute($params);
+foreach ($params as $k => $v) $st->bindValue($k, $v);
+$st->bindValue(':limit', $pager['per_page'], PDO::PARAM_INT);
+$st->bindValue(':offset', $pager['offset'], PDO::PARAM_INT);
+$st->execute();
 $rfqs = $st->fetchAll();
 ?>
 
 <h1>RFQs</h1>
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-  <?php
-    $tabs = ['submitted'=>'Submitted','quoted'=>'Quoted','closed'=>'Closed','draft'=>'Drafts','all'=>'All'];
-    foreach($tabs as $k=>$label){
-      $active = ($status===$k) ? 'btn' : 'btn secondary';
-      echo '<a class="'.$active.'" href="'.url('admin/rfqs.php?status='.$k).'">'.e($label).'</a>';
-    }
-  ?>
+<div class="toolbar" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:end;margin-bottom:12px">
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <?php
+      $tabs = ['submitted'=>'Submitted','quoted'=>'Quoted','closed'=>'Closed','draft'=>'Drafts','all'=>'All'];
+      foreach($tabs as $k=>$label){
+        $active = ($status===$k) ? 'btn' : 'btn secondary';
+        echo '<a class="'.$active.'" href="'.url('admin/rfqs.php?status='.$k).'">'.e($label).'</a>';
+      }
+    ?>
+  </div>
+  <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <input type="hidden" name="status" value="<?php echo e($status); ?>">
+    <input type="text" name="q" value="<?php echo e($q); ?>" placeholder="Search RFQ #, customer, company, email">
+    <button class="btn secondary" type="submit">Filter</button>
+    <?php if ($q !== ''): ?><a class="btn secondary" href="<?php echo url('admin/rfqs.php?status='.$status); ?>">Clear</a><?php endif; ?>
+  </form>
+</div>
+
+<div class="muted" style="margin-bottom:12px">
+  Showing <?php echo (int)$pager['from']; ?>–<?php echo (int)$pager['to']; ?> of <?php echo (int)$pager['total']; ?> RFQs
 </div>
 
 <table class="table">
@@ -59,6 +88,11 @@ $rfqs = $st->fetchAll();
       <td><a class="btn" href="<?php echo url('admin/rfq-view.php?id='.$r['id']); ?>">Open</a></td>
     </tr>
   <?php endforeach; ?>
+  <?php if (!$rfqs): ?>
+    <tr><td colspan="7" class="muted">No RFQs matched the current filter.</td></tr>
+  <?php endif; ?>
 </table>
+
+<?php echo pagination_links($pager); ?>
 
 <?php require_once __DIR__.'/footer.php'; ?>
