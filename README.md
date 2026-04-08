@@ -28,3 +28,9 @@
 - Email uses `mail()`; configure server mail or replace with SMTP later.
 - Product images/documents are seeded to `/assets/no-image.png` and `/uploads/docs/*.pdf` (placeholder brochures) – replace with your official images/brochures.
 - Order number format: `PITC-YYYYMMDD-######`.
+
+### Executive admin dashboard
+- RFQ operations dashboard with pipeline counts, quoted value, and response health
+- Volume trend for recent RFQ activity
+- Operational watchlists for stale submissions, expiring quotations, and low-stock risk
+- Top requested products and active company-account snapshots for B2B context
