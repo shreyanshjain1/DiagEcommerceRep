@@ -4,6 +4,10 @@ if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
 
+// ------------------------------------------------------------
+// Compatibility helpers (PHP 7.4+)
+// ------------------------------------------------------------
+// PHP 8 introduced str_contains; some cPanel environments still run PHP 7.x.
 if (!function_exists('str_contains')) {
   function str_contains($haystack, $needle): bool {
     $haystack = (string)$haystack;
@@ -13,6 +17,7 @@ if (!function_exists('str_contains')) {
   }
 }
 
+// If mbstring isn't enabled, fallback to substr.
 function mb_first_char(string $s): string {
   if (function_exists('mb_substr')) return (string)mb_substr($s, 0, 1, 'UTF-8');
   return substr($s, 0, 1);
@@ -22,6 +27,7 @@ function e($v): string {
   return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
+// --- Base URL helpers so app works in a subfolder ---
 function base_web(): string {
   $doc = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
   $rootFs = str_replace('\\', '/', realpath(__DIR__ . '/..') ?: '');
@@ -51,7 +57,7 @@ function ensure_post(): void {
   }
 }
 
-function redirect(string $to): void {
+function redirect(string $to): never {
   header('Location: ' . $to);
   exit;
 }
@@ -83,6 +89,7 @@ function quote_number(): string {
   return 'Q-' . date('Ymd') . '-' . str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 }
 
+// --- Compare list (session) ---
 function compare_add(int $pid): void {
   $_SESSION['compare'] = $_SESSION['compare'] ?? [];
   if (!in_array($pid, $_SESSION['compare'], true)) $_SESSION['compare'][] = $pid;
@@ -100,6 +107,7 @@ function compare_count(): int {
   return count(compare_all());
 }
 
+// --- Wishlist (session) ---
 function wishlist_add(int $pid): void {
   $_SESSION['wishlist'] = $_SESSION['wishlist'] ?? [];
   if (!in_array($pid, $_SESSION['wishlist'], true)) $_SESSION['wishlist'][] = $pid;
@@ -121,88 +129,54 @@ function wishlist_count(): int {
   return count(wishlist_all());
 }
 
+// --- Recently viewed ---
 function track_viewed(int $pid): void {
   $_SESSION['recent'] = $_SESSION['recent'] ?? [];
   array_unshift($_SESSION['recent'], $pid);
   $_SESSION['recent'] = array_slice(array_values(array_unique(array_map('intval', $_SESSION['recent']))), 0, 12);
 }
 
-function company_account_code(string $companyName): string {
-  $prefix = preg_replace('/[^A-Z0-9]+/', '', strtoupper((string)$companyName));
-  $prefix = substr($prefix, 0, 6);
-  if ($prefix === '') {
-    $prefix = 'ACC';
+
+// --- Export helpers ---
+function csv_escape_cell($value): string {
+  $value = (string)($value ?? '');
+  $value = str_replace(["
+", "", "
+"], ' ', $value);
+  return $value;
+}
+
+function export_csv_download(string $filename, array $headers, array $rows): void {
+  header('Content-Type: text/csv; charset=UTF-8');
+  header('Content-Disposition: attachment; filename="' . preg_replace('/[^A-Za-z0-9._-]/', '-', $filename) . '"');
+  header('Pragma: no-cache');
+  header('Expires: 0');
+
+  $out = fopen('php://output', 'w');
+  if ($out === false) {
+    http_response_code(500);
+    exit('Unable to open output stream');
   }
-  return $prefix . '-' . date('ymd') . '-' . str_pad((string)random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-}
 
-function current_user_company_account_id(PDO $pdo, ?int $userId = null): ?int {
-  $uid = $userId ?: current_user_id();
-  if (!$uid) return null;
-  $st = $pdo->prepare('SELECT company_account_id FROM users WHERE id = :id LIMIT 1');
-  $st->execute([':id' => $uid]);
-  $value = $st->fetchColumn();
-  return $value !== false && $value !== null ? (int)$value : null;
-}
-
-function get_company_account(PDO $pdo, int $companyAccountId): ?array {
-  $st = $pdo->prepare(
-    "SELECT ca.*,
-            creator.name AS created_by_name,
-            (SELECT COUNT(*) FROM company_account_contacts c WHERE c.company_account_id = ca.id AND c.invite_status <> 'inactive') AS contact_count,
-            (SELECT COUNT(*) FROM quotes q WHERE q.user_id IN (SELECT c2.user_id FROM company_account_contacts c2 WHERE c2.company_account_id = ca.id)) AS quote_count
-     FROM company_accounts ca
-     LEFT JOIN users creator ON creator.id = ca.created_by
-     WHERE ca.id = :id
-     LIMIT 1"
-  );
-  $st->execute([':id' => $companyAccountId]);
-  $row = $st->fetch(PDO::FETCH_ASSOC);
-  return $row ?: null;
-}
-
-function get_company_contacts(PDO $pdo, int $companyAccountId): array {
-  $st = $pdo->prepare(
-    "SELECT c.id, c.contact_role, c.is_primary, c.invite_status, c.created_at,
-            u.id AS user_id, u.name, u.email, u.phone, u.role AS platform_role
-     FROM company_account_contacts c
-     INNER JOIN users u ON u.id = c.user_id
-     WHERE c.company_account_id = :id
-     ORDER BY c.is_primary DESC, u.name ASC"
-  );
-  $st->execute([':id' => $companyAccountId]);
-  return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-}
-
-
-function get_company_addresses(PDO $pdo, int $companyAccountId, bool $activeOnly = true): array {
-  $sql = "SELECT * FROM company_account_addresses WHERE company_account_id = :id" . ($activeOnly ? " AND is_active = 1" : "") . " ORDER BY is_default_billing DESC, is_default_shipping DESC, label ASC, id ASC";
-  $st = $pdo->prepare($sql);
-  $st->execute([':id' => $companyAccountId]);
-  return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-}
-
-function get_default_company_address(PDO $pdo, int $companyAccountId, string $kind = 'shipping'): ?array {
-  $kind = $kind === 'billing' ? 'billing' : 'shipping';
-  $orderField = $kind === 'billing' ? 'is_default_billing' : 'is_default_shipping';
-  $st = $pdo->prepare(
-    "SELECT * FROM company_account_addresses
-     WHERE company_account_id = :id AND is_active = 1
-     ORDER BY {$orderField} DESC,
-              CASE WHEN address_type = :kind THEN 0 ELSE 1 END,
-              id ASC
-     LIMIT 1"
-  );
-  $st->execute([':id' => $companyAccountId, ':kind' => $kind]);
-  $row = $st->fetch(PDO::FETCH_ASSOC);
-  return $row ?: null;
-}
-
-function format_company_address(array $address): string {
-  $parts = [];
-  foreach (['address_line1','address_line2','city','province','postal_code','country'] as $key) {
-    $val = trim((string)($address[$key] ?? ''));
-    if ($val !== '') $parts[] = $val;
+  fwrite($out, "ï»¿");
+  fputcsv($out, $headers);
+  foreach ($rows as $row) {
+    $line = [];
+    foreach ($headers as $header) {
+      $line[] = csv_escape_cell($row[$header] ?? '');
+    }
+    fputcsv($out, $line);
   }
-  return implode(', ', $parts);
+  fclose($out);
+  exit;
+}
+
+function admin_export_range(): array {
+  $dateFrom = trim((string)($_GET['date_from'] ?? ''));
+  $dateTo   = trim((string)($_GET['date_to'] ?? ''));
+
+  if ($dateFrom !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) $dateFrom = '';
+  if ($dateTo !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) $dateTo = '';
+
+  return [$dateFrom, $dateTo];
 }

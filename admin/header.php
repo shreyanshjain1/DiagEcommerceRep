@@ -39,8 +39,7 @@
     <a href="<?php echo url('admin/products.php'); ?>">Products</a>
     <a href="<?php echo url('admin/products-new.php'); ?>">New Product</a>
     <a href="<?php echo url('admin/users.php'); ?>">Users</a>
-    <a href="<?php echo url('admin/company-accounts.php'); ?>">Company Accounts</a>
-    <a href="<?php echo url('admin/company-addresses.php'); ?>">Company Addresses</a>
+    <a href="<?php echo url('admin/exports.php'); ?>">Exports</a>
     <a href="<?php echo url('admin/settings.php'); ?>">Settings</a>
   </aside>
 
