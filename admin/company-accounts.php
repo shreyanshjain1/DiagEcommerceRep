@@ -4,7 +4,8 @@ require_once __DIR__ . '/header.php';
 $sql = "SELECT ca.*,
                creator.name AS created_by_name,
                (SELECT COUNT(*) FROM company_account_contacts c WHERE c.company_account_id = ca.id AND c.invite_status <> 'inactive') AS contact_count,
-               (SELECT COUNT(*) FROM quotes q WHERE q.user_id IN (SELECT c2.user_id FROM company_account_contacts c2 WHERE c2.company_account_id = ca.id)) AS quote_count
+               (SELECT COUNT(*) FROM quotes q WHERE q.user_id IN (SELECT c2.user_id FROM company_account_contacts c2 WHERE c2.company_account_id = ca.id)) AS quote_count,
+               (SELECT COUNT(*) FROM company_account_addresses a WHERE a.company_account_id = ca.id AND a.is_active = 1) AS address_count
         FROM company_accounts ca
         LEFT JOIN users creator ON creator.id = ca.created_by
         ORDER BY ca.created_at DESC
@@ -22,6 +23,7 @@ $accounts = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     <th>Primary Phone</th>
     <th>Contacts</th>
     <th>RFQs</th>
+    <th>Addresses</th>
     <th>Created By</th>
     <th>Created</th>
   </tr>
@@ -39,6 +41,7 @@ $accounts = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
       <td><?php echo e($a['primary_phone']); ?></td>
       <td><?php echo e((string)$a['contact_count']); ?></td>
       <td><?php echo e((string)$a['quote_count']); ?></td>
+      <td><?php echo e((string)$a['address_count']); ?></td>
       <td><?php echo e($a['created_by_name']); ?></td>
       <td><?php echo e($a['created_at']); ?></td>
     </tr>

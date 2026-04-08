@@ -28,8 +28,3 @@
 - Email uses `mail()`; configure server mail or replace with SMTP later.
 - Product images/documents are seeded to `/assets/no-image.png` and `/uploads/docs/*.pdf` (placeholder brochures) – replace with your official images/brochures.
 - Order number format: `PITC-YYYYMMDD-######`.
-
-## GitHub Actions
-
-- `PHP Lint` workflow validates PHP syntax on every push and pull request.
-- Helps the repo present as actively maintained and review-ready for hiring teams.

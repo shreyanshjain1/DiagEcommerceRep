@@ -173,3 +173,36 @@ function get_company_contacts(PDO $pdo, int $companyAccountId): array {
   $st->execute([':id' => $companyAccountId]);
   return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
+
+
+function get_company_addresses(PDO $pdo, int $companyAccountId, bool $activeOnly = true): array {
+  $sql = "SELECT * FROM company_account_addresses WHERE company_account_id = :id" . ($activeOnly ? " AND is_active = 1" : "") . " ORDER BY is_default_billing DESC, is_default_shipping DESC, label ASC, id ASC";
+  $st = $pdo->prepare($sql);
+  $st->execute([':id' => $companyAccountId]);
+  return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
+
+function get_default_company_address(PDO $pdo, int $companyAccountId, string $kind = 'shipping'): ?array {
+  $kind = $kind === 'billing' ? 'billing' : 'shipping';
+  $orderField = $kind === 'billing' ? 'is_default_billing' : 'is_default_shipping';
+  $st = $pdo->prepare(
+    "SELECT * FROM company_account_addresses
+     WHERE company_account_id = :id AND is_active = 1
+     ORDER BY {$orderField} DESC,
+              CASE WHEN address_type = :kind THEN 0 ELSE 1 END,
+              id ASC
+     LIMIT 1"
+  );
+  $st->execute([':id' => $companyAccountId, ':kind' => $kind]);
+  $row = $st->fetch(PDO::FETCH_ASSOC);
+  return $row ?: null;
+}
+
+function format_company_address(array $address): string {
+  $parts = [];
+  foreach (['address_line1','address_line2','city','province','postal_code','country'] as $key) {
+    $val = trim((string)($address[$key] ?? ''));
+    if ($val !== '') $parts[] = $val;
+  }
+  return implode(', ', $parts);
+}

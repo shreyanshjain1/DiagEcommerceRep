@@ -16,9 +16,15 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $companyAccount = null;
 $contacts = [];
+$companyAddresses = [];
+$defaultBillingAddress = null;
+$defaultShippingAddress = null;
 if (!empty($user['company_account_id'])) {
   $companyAccount = get_company_account($pdo, (int)$user['company_account_id']);
   $contacts = get_company_contacts($pdo, (int)$user['company_account_id']);
+  $companyAddresses = get_company_addresses($pdo, (int)$user['company_account_id']);
+  $defaultBillingAddress = get_default_company_address($pdo, (int)$user['company_account_id'], 'billing');
+  $defaultShippingAddress = get_default_company_address($pdo, (int)$user['company_account_id'], 'shipping');
 }
 ?>
 <h1>Your Profile</h1>
@@ -103,6 +109,40 @@ if (!empty($user['company_account_id'])) {
               </tr>
             <?php endforeach; ?>
           </table>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($companyAddresses): ?>
+        <div style="margin-top:14px">
+          <label style="display:block;margin-bottom:8px;font-weight:700">Saved Address Profiles</label>
+          <table class="table">
+            <tr><th>Label</th><th>Type</th><th>Address</th><th>Defaults</th></tr>
+            <?php foreach ($companyAddresses as $address): ?>
+              <tr>
+                <td>
+                  <strong><?php echo e($address['label']); ?></strong>
+                  <?php if (!empty($address['recipient_name'])): ?><br><small style="color:#6b7280"><?php echo e($address['recipient_name']); ?></small><?php endif; ?>
+                </td>
+                <td><?php echo e(ucfirst((string)$address['address_type'])); ?></td>
+                <td><?php echo e(format_company_address($address)); ?></td>
+                <td>
+                  <?php if ((int)$address['is_default_billing'] === 1): ?><span class="tag">Default Billing</span><?php endif; ?>
+                  <?php if ((int)$address['is_default_shipping'] === 1): ?><span class="tag">Default Shipping</span><?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </table>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <div>
+            <label>Default Billing Profile</label>
+            <textarea rows="3" disabled><?php echo e($defaultBillingAddress ? format_company_address($defaultBillingAddress) : 'Not set'); ?></textarea>
+          </div>
+          <div>
+            <label>Default Shipping Profile</label>
+            <textarea rows="3" disabled><?php echo e($defaultShippingAddress ? format_company_address($defaultShippingAddress) : 'Not set'); ?></textarea>
+          </div>
         </div>
       <?php endif; ?>
     </div>
