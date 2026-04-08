@@ -52,7 +52,6 @@ $brand = trim((string)($_POST['brand'] ?? ''));
 $price = (float)($_POST['price'] ?? 0);
 $stock = (int)($_POST['stock'] ?? 0);
 
-// New-product form uses status select; edit form uses is_active
 $status = (string)($_POST['status'] ?? 'active');
 $is_active = 1;
 if (isset($_POST['is_active'])) {
@@ -61,15 +60,12 @@ if (isset($_POST['is_active'])) {
   $is_active = ($status === 'inactive') ? 0 : 1;
 }
 
-// Backward compatible field names
 $short_desc = trim((string)($_POST['short_desc'] ?? ($_POST['short_description'] ?? '')));
 $long_desc  = trim((string)($_POST['long_desc'] ?? ($_POST['description'] ?? '')));
 
-// Slug
 $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $name), '-'));
 if ($slug === '') $slug = 'product-' . date('YmdHis');
 
-// Specs
 $specs = [];
 $keys = $_POST['specs_key'] ?? ($_POST['spec_key'] ?? []);
 $vals = $_POST['specs_val'] ?? ($_POST['spec_val'] ?? []);
@@ -97,7 +93,7 @@ try {
 
   $pid = (int)$pdo->lastInsertId();
 
-  // Images
+  $addedImages = 0;
   if (!empty($_FILES['images']) && is_array($_FILES['images']['name'])) {
     for ($i = 0; $i < count($_FILES['images']['name']); $i++) {
       $file = [
@@ -111,11 +107,12 @@ try {
       if ($rel) {
         $pdo->prepare("INSERT INTO product_images(product_id,image_path,sort_order) VALUES (?,?,?)")
             ->execute([$pid, $rel, 0]);
+        $addedImages++;
       }
     }
   }
 
-  // Docs (PDF)
+  $addedDocs = 0;
   if (!empty($_FILES['docs']) && is_array($_FILES['docs']['name'])) {
     $titles = $_POST['docs_titles'] ?? [];
     $singleTitle = trim((string)($_POST['doc_title'] ?? ''));
@@ -141,9 +138,19 @@ try {
 
         $pdo->prepare("INSERT INTO documents(product_id,title,label,file_path,created_at) VALUES (?,?,?,?,NOW())")
             ->execute([$pid, $t, $lbl, $rel]);
+        $addedDocs++;
       }
     }
   }
+
+  $afterStmt = $pdo->prepare("SELECT id, category_id, name, slug, sku, brand, short_desc, long_desc, specs_json, price, stock, is_active, created_at, updated_at FROM products WHERE id=:id");
+  $afterStmt->execute([':id'=>$pid]);
+  $after = $afterStmt->fetch(PDO::FETCH_ASSOC);
+
+  audit_log($pdo, 'product', $pid, 'product_created', null, $after, [
+    'added_images' => $addedImages,
+    'added_docs' => $addedDocs,
+  ]);
 
   $pdo->commit();
   header('Location: ' . url('admin/products.php?ok=created'));

@@ -29,7 +29,13 @@ if (!is_array($item_prices)) $item_prices = [];
 try {
   $pdo->beginTransaction();
 
-  // Update item prices (optional)
+  $beforeStmt = $pdo->prepare("SELECT id, quote_number, status, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, total, updated_at FROM quotes WHERE id=:id");
+  $beforeStmt->execute([':id'=>$id]);
+  $before = $beforeStmt->fetch(PDO::FETCH_ASSOC);
+  if (!$before) {
+    throw new RuntimeException('RFQ not found');
+  }
+
   $up = $pdo->prepare("UPDATE quote_items SET unit_price=:p WHERE id=:id AND quote_id=:qid");
   foreach($item_prices as $itemId => $price){
     $iid = (int)$itemId;
@@ -39,12 +45,11 @@ try {
     $up->execute([':p'=>$p, ':id'=>$iid, ':qid'=>$id]);
   }
 
-  // Recompute totals
   $sum = $pdo->prepare("SELECT COALESCE(SUM(qty * unit_price),0) AS subtotal FROM quote_items WHERE quote_id=:qid");
   $sum->execute([':qid'=>$id]);
   $subtotal = (float)($sum->fetch()['subtotal'] ?? 0);
 
-    $ship = $pdo->prepare("SELECT COALESCE(shipping_fee,0) AS ship, COALESCE(overhead_charge,0) AS ov, COALESCE(other_expenses,0) AS ot, COALESCE(installation_expenses,0) AS ins FROM quotes WHERE id=:id");
+  $ship = $pdo->prepare("SELECT COALESCE(shipping_fee,0) AS ship, COALESCE(overhead_charge,0) AS ov, COALESCE(other_expenses,0) AS ot, COALESCE(installation_expenses,0) AS ins FROM quotes WHERE id=:id");
   $ship->execute([':id'=>$id]);
   $row = $ship->fetch() ?: [];
 
@@ -72,9 +77,19 @@ try {
     ':id'=>$id
   ]);
 
+  $afterStmt = $pdo->prepare("SELECT id, quote_number, status, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, total, updated_at FROM quotes WHERE id=:id");
+  $afterStmt->execute([':id'=>$id]);
+  $after = $afterStmt->fetch(PDO::FETCH_ASSOC);
+
+  audit_log($pdo, 'quote', $id, 'rfq_updated', $before, $after, [
+    'status_changed' => (($before['status'] ?? null) !== ($after['status'] ?? null)),
+    'updated_item_prices' => array_map('intval', array_keys($item_prices)),
+  ]);
+
   $pdo->commit();
 } catch (Throwable $e) {
   if ($pdo->inTransaction()) $pdo->rollBack();
+  error_log('rfq_update failed: ' . $e->getMessage());
 }
 
 header('Location: '.url('admin/rfq-view.php?id='.$id.'&saved=1'));

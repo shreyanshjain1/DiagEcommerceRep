@@ -1,6 +1,8 @@
 <?php
 // Common helpers (no DB dependencies)
-require_once __DIR__ . '/session.php';
+if (session_status() === PHP_SESSION_NONE) {
+  session_start();
+}
 
 // ------------------------------------------------------------
 // Compatibility helpers (PHP 7.4+)
@@ -132,4 +134,45 @@ function track_viewed(int $pid): void {
   $_SESSION['recent'] = $_SESSION['recent'] ?? [];
   array_unshift($_SESSION['recent'], $pid);
   $_SESSION['recent'] = array_slice(array_values(array_unique(array_map('intval', $_SESSION['recent']))), 0, 12);
+}
+
+
+// --- Audit logging ---
+function client_ip(): string {
+  $keys = ['HTTP_CF_CONNECTING_IP','HTTP_X_FORWARDED_FOR','REMOTE_ADDR'];
+  foreach ($keys as $k) {
+    $v = trim((string)($_SERVER[$k] ?? ''));
+    if ($v === '') continue;
+    if ($k === 'HTTP_X_FORWARDED_FOR') {
+      $parts = array_map('trim', explode(',', $v));
+      return (string)($parts[0] ?? '');
+    }
+    return $v;
+  }
+  return '';
+}
+
+function audit_json($value): ?string {
+  if ($value === null) return null;
+  $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+  return $json === false ? null : $json;
+}
+
+function audit_log(PDO $pdo, string $entityType, int $entityId, string $action, $before = null, $after = null, array $meta = []): void {
+  try {
+    $stmt = $pdo->prepare("INSERT INTO audit_logs(user_id,entity_type,entity_id,action,before_json,after_json,meta_json,ip_address,user_agent,created_at) VALUES(:user_id,:entity_type,:entity_id,:action,:before_json,:after_json,:meta_json,:ip_address,:user_agent,NOW())");
+    $stmt->execute([
+      ':user_id' => current_user_id(),
+      ':entity_type' => $entityType,
+      ':entity_id' => $entityId,
+      ':action' => $action,
+      ':before_json' => audit_json($before),
+      ':after_json' => audit_json($after),
+      ':meta_json' => audit_json($meta),
+      ':ip_address' => substr(client_ip(), 0, 64),
+      ':user_agent' => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
+    ]);
+  } catch (Throwable $e) {
+    error_log('audit_log failed: ' . $e->getMessage());
+  }
 }

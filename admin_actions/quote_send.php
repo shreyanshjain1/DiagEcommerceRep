@@ -30,7 +30,10 @@ if (!is_array($item_prices)) $item_prices = [];
 try {
   $pdo->beginTransaction();
 
-  // Update item prices
+  $beforeStmt = $pdo->prepare("SELECT id, quote_number, status, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, sent_at, sent_to, sent_by, total, updated_at FROM quotes WHERE id=:id");
+  $beforeStmt->execute([':id'=>$id]);
+  $before = $beforeStmt->fetch(PDO::FETCH_ASSOC);
+
   $up = $pdo->prepare("UPDATE quote_items SET unit_price=:p WHERE id=:id AND quote_id=:qid");
   foreach($item_prices as $itemId => $price){
     $iid = (int)$itemId;
@@ -40,12 +43,10 @@ try {
     $up->execute([':p'=>$p, ':id'=>$iid, ':qid'=>$id]);
   }
 
-  // Recompute subtotal
   $sum = $pdo->prepare("SELECT COALESCE(SUM(qty * unit_price),0) AS subtotal FROM quote_items WHERE quote_id=:qid");
   $sum->execute([':qid'=>$id]);
   $subtotal = (float)($sum->fetch()['subtotal'] ?? 0);
 
-  // Load current quote row (and existing charges)
   $rowq = $pdo->prepare("SELECT COALESCE(shipping_fee,0) AS ship, COALESCE(overhead_charge,0) AS ov, COALESCE(other_expenses,0) AS ot, COALESCE(installation_expenses,0) AS ins, email FROM quotes WHERE id=:id");
   $rowq->execute([':id'=>$id]);
   $q = $rowq->fetch();
@@ -77,6 +78,15 @@ try {
     ':sto'=>$sentTo,
     ':sby'=>$sentBy,
     ':id'=>$id
+  ]);
+
+  $afterStmt = $pdo->prepare("SELECT id, quote_number, status, admin_notes, subtotal, shipping_fee, overhead_charge, other_expenses, installation_expenses, valid_until, lead_time, warranty, payment_terms, sent_at, sent_to, sent_by, total, updated_at FROM quotes WHERE id=:id");
+  $afterStmt->execute([':id'=>$id]);
+  $after = $afterStmt->fetch(PDO::FETCH_ASSOC);
+
+  audit_log($pdo, 'quote', $id, 'quote_sent', $before, $after, [
+    'sent_to' => $sentTo,
+    'updated_item_prices' => array_map('intval', array_keys($item_prices)),
   ]);
 
   $pdo->commit();

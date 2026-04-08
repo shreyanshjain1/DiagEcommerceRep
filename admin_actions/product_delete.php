@@ -23,16 +23,30 @@ function unlink_if_upload(string $path): void {
   }
 }
 
-// collect media paths first (FK cascade deletes DB rows)
+$beforeStmt = $pdo->prepare("SELECT id, category_id, name, slug, sku, brand, price, stock, is_active, created_at, updated_at FROM products WHERE id=:id");
+$beforeStmt->execute([':id'=>$id]);
+$before = $beforeStmt->fetch(PDO::FETCH_ASSOC);
+if (!$before) {
+  header('Location: ' . url('admin/products.php?err=missing_id'));
+  exit;
+}
+
 $imgs = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id=:id");
 $imgs->execute([':id'=>$id]);
-foreach($imgs->fetchAll() as $r){ unlink_if_upload((string)$r['image_path']); }
+$imageRows = $imgs->fetchAll(PDO::FETCH_ASSOC);
+foreach($imageRows as $r){ unlink_if_upload((string)$r['image_path']); }
 
 $docs = $pdo->prepare("SELECT file_path FROM documents WHERE product_id=:id");
 $docs->execute([':id'=>$id]);
-foreach($docs->fetchAll() as $r){ unlink_if_upload((string)$r['file_path']); }
+$docRows = $docs->fetchAll(PDO::FETCH_ASSOC);
+foreach($docRows as $r){ unlink_if_upload((string)$r['file_path']); }
 
 $pdo->prepare("DELETE FROM products WHERE id=:id")->execute([':id'=>$id]);
+
+audit_log($pdo, 'product', $id, 'product_deleted', $before, null, [
+  'deleted_images' => count($imageRows),
+  'deleted_docs' => count($docRows),
+]);
 
 header('Location: ' . url('admin/products.php?deleted=1'));
 exit;
