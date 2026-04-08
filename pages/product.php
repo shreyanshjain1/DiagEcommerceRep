@@ -10,9 +10,10 @@ if ($id <= 0) {
   exit;
 }
 
-$st = $pdo->prepare("SELECT p.*, c.name AS category_name
+$st = $pdo->prepare("SELECT p.*, c.name AS category_name, s.name AS supplier_name
                      FROM products p
                      LEFT JOIN categories c ON c.id = p.category_id
+                     LEFT JOIN suppliers s ON s.id = p.supplier_id
                      WHERE p.id = :id AND p.is_active = 1");
 $st->execute([':id' => $id]);
 $p = $st->fetch();
@@ -215,6 +216,7 @@ $primaryImgAbs = asset(ltrim($primaryImg, '/'));
 
       <div class="meta-row">
         <?php if (!empty($p['sku'])): ?><strong>SKU:</strong> <?php echo e($p['sku']); ?><?php endif; ?>
+        <?php if (!empty($p['vendor_sku'])): ?> &nbsp; <strong>Vendor SKU:</strong> <?php echo e($p['vendor_sku']); ?><?php endif; ?>
       </div>
 
       <?php if (!empty($p['short_desc'])): ?>
@@ -224,6 +226,21 @@ $primaryImgAbs = asset(ltrim($primaryImg, '/'));
       <?php if (!empty($p['long_desc'])): ?>
         <div class="mt16 muted" style="white-space:pre-line;line-height:1.65"><?php echo e($p['long_desc']); ?></div>
       <?php endif; ?>
+
+      <?php $availability = product_availability_meta((string)($p['availability_status'] ?? 'in_stock')); ?>
+      <div class="card" style="margin-top:18px;border:1px solid rgba(229,231,235,.9);border-radius:18px;padding:14px 16px;background:rgba(248,250,252,.95)">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+          <span class="pill secondary"><?php echo e($availability['label']); ?></span>
+          <?php if (!empty($p['supplier_name'])): ?><span class="pill secondary">Supplier: <?php echo e($p['supplier_name']); ?></span><?php endif; ?>
+        </div>
+        <div class="muted" style="line-height:1.7">
+          <?php if (!empty($p['unit_of_measure'])): ?><strong>Unit:</strong> <?php echo e($p['unit_of_measure']); ?><br><?php endif; ?>
+          <?php if (!empty($p['pack_size'])): ?><strong>Pack Size:</strong> <?php echo e($p['pack_size']); ?><br><?php endif; ?>
+          <strong>MOQ:</strong> <?php echo e((int)($p['moq'] ?? 1)); ?><br>
+          <?php if (!empty($p['lead_time_days'])): ?><strong>Lead Time:</strong> <?php echo e((int)$p['lead_time_days']); ?> day(s)<br><?php endif; ?>
+          <?php if (!empty($p['lead_time_note'])): ?><strong>Lead Time Note:</strong> <?php echo e($p['lead_time_note']); ?><br><?php endif; ?>
+        </div>
+      </div>
 
       <div class="mt16">
         <?php if (current_user_id()): ?>

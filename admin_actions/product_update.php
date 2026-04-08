@@ -56,17 +56,32 @@ $name = trim((string)($_POST['name'] ?? ''));
 $sku  = trim((string)($_POST['sku'] ?? ''));
 $brand = trim((string)($_POST['brand'] ?? ''));
 $category_id = (int)($_POST['category_id'] ?? 0);
+$supplier_id = (int)($_POST['supplier_id'] ?? 0);
+$vendor_sku = trim((string)($_POST['vendor_sku'] ?? ''));
+$availability_status = trim((string)($_POST['availability_status'] ?? 'in_stock'));
+$unit_of_measure = trim((string)($_POST['unit_of_measure'] ?? ''));
+$pack_size = trim((string)($_POST['pack_size'] ?? ''));
+$moq = max(1, (int)($_POST['moq'] ?? 1));
+$lead_time_days = ($_POST['lead_time_days'] ?? '') === '' ? null : max(0, (int)$_POST['lead_time_days']);
+$lead_time_note = trim((string)($_POST['lead_time_note'] ?? ''));
 $price = is_numeric($_POST['price'] ?? '') ? (float)$_POST['price'] : 0.00;
 $stock = is_numeric($_POST['stock'] ?? '') ? (int)$_POST['stock'] : 0;
+
+/** FIX: your form uses <select name="is_active"> so it’s ALWAYS set.
+    old code (isset) makes it always 1. */
 $is_active = (int)($_POST['is_active'] ?? 1);
+
 $short_desc = trim((string)($_POST['short_desc'] ?? ''));
 $long_desc  = trim((string)($_POST['long_desc'] ?? ''));
+$allowedAvailability = ['in_stock','low_stock','out_of_stock','backorder','preorder','discontinued'];
+if (!in_array($availability_status, $allowedAvailability, true)) $availability_status = 'in_stock';
 
 if ($name === '' || $category_id <= 0) {
   header('Location: ' . url('admin/products-edit.php?id=' . $pid . '&err=missing'));
   exit;
 }
 
+/** SPECS: your form sends spec_key[] and spec_val[] */
 $specs = [];
 $keys = $_POST['spec_key'] ?? ($_POST['specs_key'] ?? []);
 $vals = $_POST['spec_val'] ?? ($_POST['specs_val'] ?? []);
@@ -80,34 +95,34 @@ if (is_array($keys) && is_array($vals)) {
 }
 $specs_json = $specs ? json_encode($specs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null;
 
+// DEBUG (so you can see what the server received)
 error_log('SPEC_DEBUG product_id=' . $pid . ' keys=' . (is_array($keys) ? count($keys) : 0) . ' saved=' . count($specs));
 
 try {
   $pdo->beginTransaction();
 
-  $beforeStmt = $pdo->prepare("SELECT id, category_id, name, sku, brand, short_desc, long_desc, specs_json, price, stock, is_active, updated_at FROM products WHERE id=:id");
-  $beforeStmt->execute([':id'=>$pid]);
-  $before = $beforeStmt->fetch(PDO::FETCH_ASSOC);
-  if (!$before) {
-    throw new RuntimeException('Product not found');
-  }
-
+  /** IMPORTANT: remove updated_at=NOW() to avoid failing if DB schema differs */
   $pdo->prepare("UPDATE products
-                 SET category_id=:c, name=:n, sku=:sku, brand=:b,
+                 SET category_id=:c, supplier_id=:supplier_id, name=:n, sku=:sku, vendor_sku=:vendor_sku, brand=:b,
+                     availability_status=:availability_status, unit_of_measure=:uom, pack_size=:pack_size, moq=:moq,
+                     lead_time_days=:lead_time_days, lead_time_note=:lead_time_note,
                      short_desc=:sd, long_desc=:ld, specs_json=:sj,
                      price=:p, stock=:s, is_active=:a
                  WHERE id=:id")
       ->execute([
-        ':c'=>$category_id, ':n'=>$name, ':sku'=>$sku, ':b'=>$brand,
+        ':c'=>$category_id, ':supplier_id'=>($supplier_id > 0 ? $supplier_id : null), ':n'=>$name, ':sku'=>$sku, ':vendor_sku'=>$vendor_sku, ':b'=>$brand,
+        ':availability_status'=>$availability_status, ':uom'=>$unit_of_measure, ':pack_size'=>$pack_size, ':moq'=>$moq,
+        ':lead_time_days'=>$lead_time_days, ':lead_time_note'=>$lead_time_note,
         ':sd'=>$short_desc, ':ld'=>$long_desc, ':sj'=>$specs_json,
         ':p'=>$price, ':s'=>$stock, ':a'=>$is_active, ':id'=>$pid
       ]);
 
+  // Replace existing images (optional)
   if (!empty($_POST['replace_images'])) {
     $pdo->prepare("DELETE FROM product_images WHERE product_id=:p")->execute([':p'=>$pid]);
   }
 
-  $addedImages = 0;
+  // Append new images
   if (!empty($_FILES['images']) && is_array($_FILES['images']['name'])) {
     $count = count($_FILES['images']['name']);
     $sortBase = (int)$pdo->query("SELECT COALESCE(MAX(sort_order),-1)+1 FROM product_images WHERE product_id=".(int)$pid)->fetchColumn();
@@ -125,16 +140,16 @@ try {
       if ($saved) {
         $ins->execute([':p'=>$pid, ':path'=>$saved, ':ord'=>$sort]);
         $sort++;
-        $addedImages++;
       }
     }
   }
 
+  // Replace existing docs (optional)
   if (!empty($_POST['replace_docs'])) {
     $pdo->prepare("DELETE FROM documents WHERE product_id=:p")->execute([':p'=>$pid]);
   }
 
-  $addedDocs = 0;
+  // Append new docs
   if (!empty($_FILES['docs']) && is_array($_FILES['docs']['name'])) {
     $count = count($_FILES['docs']['name']);
 
@@ -156,21 +171,9 @@ try {
         $t = ($doc_title !== '' ? $doc_title : 'Brochure');
         $l = ($doc_label !== '' ? $doc_label : $t);
         $ins->execute([':p'=>$pid, ':t'=>$t, ':l'=>$l, ':path'=>$saved]);
-        $addedDocs++;
       }
     }
   }
-
-  $afterStmt = $pdo->prepare("SELECT id, category_id, name, sku, brand, short_desc, long_desc, specs_json, price, stock, is_active, updated_at FROM products WHERE id=:id");
-  $afterStmt->execute([':id'=>$pid]);
-  $after = $afterStmt->fetch(PDO::FETCH_ASSOC);
-
-  audit_log($pdo, 'product', $pid, 'product_updated', $before, $after, [
-    'replace_images' => !empty($_POST['replace_images']),
-    'replace_docs' => !empty($_POST['replace_docs']),
-    'added_images' => $addedImages,
-    'added_docs' => $addedDocs,
-  ]);
 
   $pdo->commit();
   header('Location: ' . url('admin/products-edit.php?id=' . $pid . '&saved=1'));

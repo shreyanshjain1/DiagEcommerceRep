@@ -13,6 +13,7 @@ if (!$p) {
 }
 
 $cats = $pdo->query("SELECT id,name FROM categories ORDER BY sort_order ASC,name ASC")->fetchAll();
+$suppliers = $pdo->query("SELECT id,name FROM suppliers WHERE is_active=1 ORDER BY name ASC")->fetchAll();
 
 $imgs = $pdo->prepare("SELECT id,image_path,sort_order FROM product_images WHERE product_id=:p ORDER BY sort_order ASC,id ASC");
 $imgs->execute([':p' => $id]);
@@ -70,6 +71,15 @@ if (!empty($p['specs_json'])) {
           <?php endforeach; ?>
         </select>
       </div>
+      <div>
+        <label>Supplier / Vendor</label>
+        <select name="supplier_id">
+          <option value="">None selected</option>
+          <?php foreach ($suppliers as $s): ?>
+            <option value="<?php echo (int)$s['id']; ?>" <?php echo ((int)($p['supplier_id'] ?? 0) === (int)$s['id']) ? 'selected' : ''; ?>><?php echo e($s['name']); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
     </div>
 
     <div class="row">
@@ -90,6 +100,44 @@ if (!empty($p['specs_json'])) {
         </select>
       </div>
     </div>
+
+    <h3 class="mt16">Commercial Details</h3>
+    <div class="row">
+      <div>
+        <label>Vendor SKU</label>
+        <input type="text" name="vendor_sku" value="<?php echo e($p['vendor_sku'] ?? ''); ?>">
+      </div>
+      <div>
+        <label>Availability Status</label>
+        <select name="availability_status">
+          <?php foreach (['in_stock'=>'In stock','low_stock'=>'Low stock','out_of_stock'=>'Out of stock','backorder'=>'Backorder','preorder'=>'Pre-order','discontinued'=>'Discontinued'] as $avKey => $avLabel): ?>
+            <option value="<?php echo e($avKey); ?>" <?php echo (($p['availability_status'] ?? 'in_stock') === $avKey) ? 'selected' : ''; ?>><?php echo e($avLabel); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div>
+        <label>Unit of Measure</label>
+        <input type="text" name="unit_of_measure" value="<?php echo e($p['unit_of_measure'] ?? ''); ?>" placeholder="unit / box / kit">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Pack Size</label>
+        <input type="text" name="pack_size" value="<?php echo e($p['pack_size'] ?? ''); ?>" placeholder="e.g., box of 50">
+      </div>
+      <div>
+        <label>MOQ</label>
+        <input type="number" min="1" name="moq" value="<?php echo e((int)($p['moq'] ?? 1)); ?>">
+      </div>
+      <div>
+        <label>Lead Time (days)</label>
+        <input type="number" min="0" name="lead_time_days" value="<?php echo e($p['lead_time_days'] ?? ''); ?>">
+      </div>
+    </div>
+
+    <label>Lead Time Note</label>
+    <input type="text" name="lead_time_note" value="<?php echo e($p['lead_time_note'] ?? ''); ?>" placeholder="ex-stock / imported on order / subject to supplier confirmation">
 
     <label>Short Description</label>
     <textarea name="short_desc" rows="2"><?php echo e($p['short_desc']); ?></textarea>

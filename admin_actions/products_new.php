@@ -49,9 +49,18 @@ $category_id = (int)($_POST['category_id'] ?? 0);
 $name = trim((string)($_POST['name'] ?? ''));
 $sku = trim((string)($_POST['sku'] ?? ''));
 $brand = trim((string)($_POST['brand'] ?? ''));
+$supplier_id = (int)($_POST['supplier_id'] ?? 0);
+$vendor_sku = trim((string)($_POST['vendor_sku'] ?? ''));
+$availability_status = trim((string)($_POST['availability_status'] ?? 'in_stock'));
+$unit_of_measure = trim((string)($_POST['unit_of_measure'] ?? ''));
+$pack_size = trim((string)($_POST['pack_size'] ?? ''));
+$moq = max(1, (int)($_POST['moq'] ?? 1));
+$lead_time_days = ($_POST['lead_time_days'] ?? '') === '' ? null : max(0, (int)$_POST['lead_time_days']);
+$lead_time_note = trim((string)($_POST['lead_time_note'] ?? ''));
 $price = (float)($_POST['price'] ?? 0);
 $stock = (int)($_POST['stock'] ?? 0);
 
+// New-product form uses status select; edit form uses is_active
 $status = (string)($_POST['status'] ?? 'active');
 $is_active = 1;
 if (isset($_POST['is_active'])) {
@@ -60,12 +69,15 @@ if (isset($_POST['is_active'])) {
   $is_active = ($status === 'inactive') ? 0 : 1;
 }
 
+// Backward compatible field names
 $short_desc = trim((string)($_POST['short_desc'] ?? ($_POST['short_description'] ?? '')));
 $long_desc  = trim((string)($_POST['long_desc'] ?? ($_POST['description'] ?? '')));
 
+// Slug
 $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $name), '-'));
 if ($slug === '') $slug = 'product-' . date('YmdHis');
 
+// Specs
 $specs = [];
 $keys = $_POST['specs_key'] ?? ($_POST['spec_key'] ?? []);
 $vals = $_POST['specs_val'] ?? ($_POST['spec_val'] ?? []);
@@ -78,22 +90,25 @@ if (is_array($keys) && is_array($vals)) {
   }
 }
 $specs_json = json_encode($specs, JSON_UNESCAPED_UNICODE);
+$allowedAvailability = ['in_stock','low_stock','out_of_stock','backorder','preorder','discontinued'];
+if (!in_array($availability_status, $allowedAvailability, true)) $availability_status = 'in_stock';
 
 try {
   if (!$pdo->inTransaction()) {
     $pdo->beginTransaction();
   }
 
-  $pdo->prepare("INSERT INTO products(category_id,name,slug,sku,brand,short_desc,long_desc,specs_json,price,stock,is_active,created_at,updated_at)
-                 VALUES (:c,:n,:slug,:sku,:b,:sd,:ld,:sj,:p,:s,:a,NOW(),NOW())")
+  $pdo->prepare("INSERT INTO products(category_id,supplier_id,name,slug,sku,vendor_sku,brand,availability_status,unit_of_measure,pack_size,moq,lead_time_days,lead_time_note,short_desc,long_desc,specs_json,price,stock,is_active,created_at,updated_at)
+                 VALUES (:c,:supplier_id,:n,:slug,:sku,:vendor_sku,:b,:availability_status,:uom,:pack_size,:moq,:lead_time_days,:lead_time_note,:sd,:ld,:sj,:p,:s,:a,NOW(),NOW())")
       ->execute([
-        ':c'=>$category_id, ':n'=>$name, ':slug'=>$slug, ':sku'=>$sku, ':b'=>$brand,
+        ':c'=>$category_id, ':supplier_id'=>($supplier_id > 0 ? $supplier_id : null), ':n'=>$name, ':slug'=>$slug, ':sku'=>$sku, ':vendor_sku'=>$vendor_sku, ':b'=>$brand,
+        ':availability_status'=>$availability_status, ':uom'=>$unit_of_measure, ':pack_size'=>$pack_size, ':moq'=>$moq, ':lead_time_days'=>$lead_time_days, ':lead_time_note'=>$lead_time_note,
         ':sd'=>$short_desc, ':ld'=>$long_desc, ':sj'=>$specs_json, ':p'=>$price, ':s'=>$stock, ':a'=>$is_active
       ]);
 
   $pid = (int)$pdo->lastInsertId();
 
-  $addedImages = 0;
+  // Images
   if (!empty($_FILES['images']) && is_array($_FILES['images']['name'])) {
     for ($i = 0; $i < count($_FILES['images']['name']); $i++) {
       $file = [
@@ -107,12 +122,11 @@ try {
       if ($rel) {
         $pdo->prepare("INSERT INTO product_images(product_id,image_path,sort_order) VALUES (?,?,?)")
             ->execute([$pid, $rel, 0]);
-        $addedImages++;
       }
     }
   }
 
-  $addedDocs = 0;
+  // Docs (PDF)
   if (!empty($_FILES['docs']) && is_array($_FILES['docs']['name'])) {
     $titles = $_POST['docs_titles'] ?? [];
     $singleTitle = trim((string)($_POST['doc_title'] ?? ''));
@@ -138,19 +152,9 @@ try {
 
         $pdo->prepare("INSERT INTO documents(product_id,title,label,file_path,created_at) VALUES (?,?,?,?,NOW())")
             ->execute([$pid, $t, $lbl, $rel]);
-        $addedDocs++;
       }
     }
   }
-
-  $afterStmt = $pdo->prepare("SELECT id, category_id, name, slug, sku, brand, short_desc, long_desc, specs_json, price, stock, is_active, created_at, updated_at FROM products WHERE id=:id");
-  $afterStmt->execute([':id'=>$pid]);
-  $after = $afterStmt->fetch(PDO::FETCH_ASSOC);
-
-  audit_log($pdo, 'product', $pid, 'product_created', null, $after, [
-    'added_images' => $addedImages,
-    'added_docs' => $addedDocs,
-  ]);
 
   $pdo->commit();
   header('Location: ' . url('admin/products.php?ok=created'));

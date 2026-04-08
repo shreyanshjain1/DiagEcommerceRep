@@ -3,6 +3,7 @@ require_once __DIR__.'/header.php';
 require_once __DIR__.'/../config/csrf.php';
 
 $cats = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
+$suppliers = $pdo->query("SELECT id, name FROM suppliers WHERE is_active=1 ORDER BY name ASC")->fetchAll();
 ?>
 
 <h1>Add Product</h1>
@@ -25,6 +26,19 @@ $cats = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchA
         <input name="brand" required placeholder="e.g., Erba">
       </div>
       <div>
+        <label>Supplier / Vendor</label>
+        <select name="supplier_id">
+          <option value="">None selected</option>
+          <?php foreach($suppliers as $s): ?>
+            <option value="<?php echo (int)$s['id']; ?>"><?php echo e($s['name']); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div>
+        <label>Vendor SKU</label>
+        <input name="vendor_sku" placeholder="Supplier-side SKU / ref code">
+      </div>
+      <div>
         <label>Category</label>
         <select name="category_id" required>
           <option value="">Select...</option>
@@ -44,6 +58,41 @@ $cats = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchA
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
+      </div>
+    </div>
+
+    <h3 class="mt16">Commercial Details</h3>
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:16px">
+      <div>
+        <label>Availability Status</label>
+        <select name="availability_status">
+          <option value="in_stock">In stock</option>
+          <option value="low_stock">Low stock</option>
+          <option value="out_of_stock">Out of stock</option>
+          <option value="backorder">Backorder</option>
+          <option value="preorder">Pre-order</option>
+          <option value="discontinued">Discontinued</option>
+        </select>
+      </div>
+      <div>
+        <label>Unit of Measure</label>
+        <input name="unit_of_measure" placeholder="e.g., unit, box, kit, bottle">
+      </div>
+      <div>
+        <label>Pack Size</label>
+        <input name="pack_size" placeholder="e.g., 1 analyzer / box of 50 / 25 tests">
+      </div>
+      <div>
+        <label>MOQ</label>
+        <input name="moq" type="number" min="1" value="1">
+      </div>
+      <div>
+        <label>Lead Time (days)</label>
+        <input name="lead_time_days" type="number" min="0" placeholder="e.g., 14">
+      </div>
+      <div>
+        <label>Lead Time Note</label>
+        <input name="lead_time_note" placeholder="e.g., ex-stock / imported on order">
       </div>
     </div>
 

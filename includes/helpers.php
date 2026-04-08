@@ -342,3 +342,16 @@ function generate_quote_snapshot(PDO $pdo, int $quoteId, ?int $createdBy = null)
     'file_size' => $fileSize,
   ];
 }
+
+
+function product_availability_meta(string $status): array {
+  $map = [
+    'in_stock' => ['label' => 'In stock', 'tone' => 'ok'],
+    'low_stock' => ['label' => 'Low stock', 'tone' => 'warn'],
+    'out_of_stock' => ['label' => 'Out of stock', 'tone' => 'bad'],
+    'backorder' => ['label' => 'Backorder', 'tone' => 'info'],
+    'preorder' => ['label' => 'Pre-order', 'tone' => 'info'],
+    'discontinued' => ['label' => 'Discontinued', 'tone' => 'bad'],
+  ];
+  return $map[$status] ?? ['label' => ucwords(str_replace('_', ' ', $status)), 'tone' => 'info'];
+}
