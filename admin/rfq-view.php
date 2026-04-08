@@ -39,6 +39,7 @@ $over  = (float)($q['overhead_charge'] ?? 0);
 $other = (float)($q['other_expenses'] ?? 0);
 $inst  = (float)($q['installation_expenses'] ?? 0);
 $computedTotal = $computedSubtotal + $ship + $over + $other + $inst;
+$history = rfq_history($pdo, (int)$q['id']);
 ?>
 
 <style>
@@ -124,6 +125,12 @@ $computedTotal = $computedSubtotal + $ship + $over + $other + $inst;
     margin-top:14px;
   }
   .rfq-actions .btn{white-space:nowrap}
+
+  .timeline-list{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+  .timeline-item{border:1px solid var(--admin-border);border-radius:14px;padding:14px;background:#fff}
+  .timeline-meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--admin-muted);margin-bottom:8px}
+  .timeline-title{font-weight:900;color:#0f172a;margin-bottom:4px}
+  .timeline-note{white-space:pre-line;line-height:1.55;color:#334155}
 
   /* Make right panel padding feel better */
   .rfq-card{padding:22px !important}
@@ -258,6 +265,11 @@ $computedTotal = $computedSubtotal + $ship + $over + $other + $inst;
         <label for="admin_notes">Admin Notes (internal)</label>
         <textarea id="admin_notes" name="admin_notes" rows="6" placeholder="Add internal notes, pricing references, follow-up status, etc..."><?php echo e($q['admin_notes'] ?? ''); ?></textarea>
       </div>
+
+      <div class="full">
+        <label for="timeline_note">Timeline Note</label>
+        <textarea id="timeline_note" name="timeline_note" rows="4" placeholder="Optional: add a visible internal timeline note for this RFQ update."></textarea>
+      </div>
     </div>
 
     <div class="rfq-actions">
@@ -271,6 +283,39 @@ $computedTotal = $computedSubtotal + $ship + $over + $other + $inst;
 
     <div class="mt16 muted" style="font-size:12px;line-height:1.55">
       Tip: Set status to <strong>Quoted</strong> once you have sent the formal quotation to the customer.
+    </div>
+
+    <div class="mt16">
+      <h3 style="margin-bottom:0">RFQ Timeline</h3>
+      <div class="sub">Status movement and admin notes recorded for recruiter-visible workflow depth.</div>
+      <?php if($history): ?>
+        <div class="timeline-list">
+          <?php foreach($history as $entry): ?>
+            <?php
+              $who = trim((string)($entry['acted_by_name'] ?? ''));
+              if ($who === '') $who = 'System / Unknown';
+              $from = trim((string)($entry['from_status'] ?? ''));
+              $to = trim((string)($entry['to_status'] ?? ''));
+              $title = ucwords(str_replace('_',' ', (string)($entry['event_type'] ?? 'update')));
+              if ($from !== '' || $to !== '') {
+                $title .= ' · ' . ($from !== '' ? ucfirst($from) : '—') . ' → ' . ($to !== '' ? ucfirst($to) : '—');
+              }
+            ?>
+            <div class="timeline-item">
+              <div class="timeline-meta">
+                <span><?php echo e($who); ?></span>
+                <span><?php echo e($entry['created_at']); ?></span>
+              </div>
+              <div class="timeline-title"><?php echo e($title); ?></div>
+              <div class="timeline-note"><?php echo nl2br(e($entry['note'] ?: 'No additional note.')); ?></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php else: ?>
+        <div class="card p mt16" style="background:#f8fafc">
+          <div class="muted">No RFQ timeline entries yet.</div>
+        </div>
+      <?php endif; ?>
     </div>
   </div>
 </form>

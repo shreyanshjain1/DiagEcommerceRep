@@ -12,6 +12,7 @@ $status = (string)($_POST['status'] ?? 'submitted');
 $allowed = ['draft','submitted','quoted','closed'];
 if(!in_array($status,$allowed,true)) $status = 'submitted';
 $admin_notes = trim((string)($_POST['admin_notes'] ?? ''));
+$timeline_note = trim((string)($_POST['timeline_note'] ?? ''));
 
 $shipping_fee_in = is_numeric($_POST['shipping_fee'] ?? null) ? (float)$_POST['shipping_fee'] : null;
 $overhead_in = is_numeric($_POST['overhead_charge'] ?? null) ? (float)$_POST['overhead_charge'] : null;
@@ -81,10 +82,21 @@ try {
   $afterStmt->execute([':id'=>$id]);
   $after = $afterStmt->fetch(PDO::FETCH_ASSOC);
 
+  $statusChanged = (($before['status'] ?? null) !== ($after['status'] ?? null));
+
   audit_log($pdo, 'quote', $id, 'rfq_updated', $before, $after, [
-    'status_changed' => (($before['status'] ?? null) !== ($after['status'] ?? null)),
+    'status_changed' => $statusChanged,
     'updated_item_prices' => array_map('intval', array_keys($item_prices)),
+    'timeline_note' => $timeline_note,
   ]);
+
+  if ($statusChanged || $timeline_note !== '') {
+    rfq_timeline_log($pdo, $id, $statusChanged ? 'status_changed' : 'note_added', $before['status'] ?? null, $after['status'] ?? null, $timeline_note, [
+      'quote_number' => $after['quote_number'] ?? null,
+      'updated_item_prices' => array_map('intval', array_keys($item_prices)),
+      'source' => 'admin_actions/rfq_update.php',
+    ]);
+  }
 
   $pdo->commit();
 } catch (Throwable $e) {

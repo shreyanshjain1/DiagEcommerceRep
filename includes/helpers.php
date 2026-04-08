@@ -197,3 +197,34 @@ function audit_log(PDO $pdo, string $entityType, int $entityId, string $action, 
     error_log('audit_log failed: ' . $e->getMessage());
   }
 }
+
+
+function rfq_timeline_log(PDO $pdo, int $quoteId, string $eventType, ?string $fromStatus = null, ?string $toStatus = null, string $note = '', array $meta = []): void {
+  try {
+    $stmt = $pdo->prepare("INSERT INTO quote_status_history(quote_id, event_type, from_status, to_status, note, meta_json, acted_by, ip_address, user_agent, created_at) VALUES(:quote_id,:event_type,:from_status,:to_status,:note,:meta_json,:acted_by,:ip_address,:user_agent,NOW())");
+    $stmt->execute([
+      ':quote_id' => $quoteId,
+      ':event_type' => substr($eventType, 0, 50),
+      ':from_status' => $fromStatus !== '' ? $fromStatus : null,
+      ':to_status' => $toStatus !== '' ? $toStatus : null,
+      ':note' => $note !== '' ? $note : null,
+      ':meta_json' => audit_json($meta),
+      ':acted_by' => current_user_id(),
+      ':ip_address' => substr(client_ip(), 0, 64),
+      ':user_agent' => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
+    ]);
+  } catch (Throwable $e) {
+    error_log('rfq_timeline_log failed: ' . $e->getMessage());
+  }
+}
+
+function rfq_history(PDO $pdo, int $quoteId): array {
+  try {
+    $stmt = $pdo->prepare("SELECT h.*, u.name AS acted_by_name, u.email AS acted_by_email FROM quote_status_history h LEFT JOIN users u ON u.id = h.acted_by WHERE h.quote_id = :quote_id ORDER BY h.created_at DESC, h.id DESC");
+    $stmt->execute([':quote_id' => $quoteId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+  } catch (Throwable $e) {
+    error_log('rfq_history failed: ' . $e->getMessage());
+    return [];
+  }
+}

@@ -35,6 +35,7 @@ $grand = (float)($q['total'] ?? ($subtotal + $shipping + $over + $other + $inst)
 
 $wa = (string)setting('contact_whatsapp', '09453462354');
 $msg = 'Hi! Following up on RFQ ' . $q['quote_number'] . '.';
+$history = rfq_history($pdo, (int)$q['id']);
 ?>
 
 <div class="page-head">
@@ -118,6 +119,35 @@ $msg = 'Hi! Following up on RFQ ' . $q['quote_number'] . '.';
       <a class="btn ghost" href="<?php echo url('pages/quotes.php'); ?>">Back</a>
     </div>
   </div>
+
+  <div class="card p mt16">
+    <h3 class="m0">RFQ Timeline</h3>
+    <div class="mt16" style="display:flex;flex-direction:column;gap:10px">
+      <?php if($history): ?>
+        <?php foreach($history as $entry): ?>
+          <?php
+            $from = trim((string)($entry['from_status'] ?? ''));
+            $to = trim((string)($entry['to_status'] ?? ''));
+            $title = ucwords(str_replace('_',' ', (string)($entry['event_type'] ?? 'update')));
+            if ($from !== '' || $to !== '') {
+              $title .= ' · ' . ($from !== '' ? ucfirst($from) : '—') . ' → ' . ($to !== '' ? ucfirst($to) : '—');
+            }
+          ?>
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff">
+            <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:#64748b;margin-bottom:6px">
+              <span><?php echo e($entry['created_at']); ?></span>
+              <span><?php echo e($entry['acted_by_name'] ?: 'Team update'); ?></span>
+            </div>
+            <div style="font-weight:800;margin-bottom:4px"><?php echo e($title); ?></div>
+            <div class="muted" style="white-space:pre-line;line-height:1.55"><?php echo e($entry['note'] ?: 'No additional note.'); ?></div>
+          </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="muted">No timeline activity recorded yet.</div>
+      <?php endif; ?>
+    </div>
+  </div>
+
 </div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -13,6 +13,7 @@ $id = (int)($_POST['id'] ?? 0);
 if ($id <= 0) { http_response_code(400); exit('Bad request'); }
 
 $admin_notes = trim((string)($_POST['admin_notes'] ?? ''));
+$timeline_note = trim((string)($_POST['timeline_note'] ?? ''));
 
 $shipping_fee_in = is_numeric($_POST['shipping_fee'] ?? null) ? (float)$_POST['shipping_fee'] : null;
 $overhead_in = is_numeric($_POST['overhead_charge'] ?? null) ? (float)$_POST['overhead_charge'] : null;
@@ -87,6 +88,14 @@ try {
   audit_log($pdo, 'quote', $id, 'quote_sent', $before, $after, [
     'sent_to' => $sentTo,
     'updated_item_prices' => array_map('intval', array_keys($item_prices)),
+    'timeline_note' => $timeline_note,
+  ]);
+
+  rfq_timeline_log($pdo, $id, 'quote_sent', $before['status'] ?? null, $after['status'] ?? null, $timeline_note !== '' ? $timeline_note : 'Formal quotation sent to customer.', [
+    'quote_number' => $after['quote_number'] ?? null,
+    'sent_to' => $sentTo,
+    'updated_item_prices' => array_map('intval', array_keys($item_prices)),
+    'source' => 'admin_actions/quote_send.php',
   ]);
 
   $pdo->commit();
