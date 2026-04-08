@@ -19,15 +19,12 @@ function redirect_ok(string $msg): void {
   exit;
 }
 
-/** Basic guard */
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
   redirect_back('Invalid request.');
 }
 
-/** ✅ CSRF (matches your config/csrf.php exactly) */
 csrf_validate(url('pages/signup.php'));
 
-/** Validate fields */
 $name    = trim((string)($_POST['name'] ?? ''));
 $phone   = trim((string)($_POST['phone'] ?? ''));
 $company = trim((string)($_POST['company'] ?? ''));
@@ -48,7 +45,6 @@ if (strlen($pass) < 8) {
   redirect_back('Password must be at least 8 characters.');
 }
 
-/** Required docs */
 $requiredDocs = [
   'doc_company_profile' => 'company_profile',
   'doc_mayors_permit'   => 'mayors_permit',
@@ -64,10 +60,9 @@ foreach ($requiredDocs as $input => $type) {
 
 $allowedExt  = ['pdf','jpg','jpeg','png'];
 $allowedMime = ['application/pdf','image/jpeg','image/png'];
-$maxBytes    = 10 * 1024 * 1024; // 10MB
+$maxBytes    = 10 * 1024 * 1024;
 
-/** Upload directory (inside /ecom/uploads/user_docs) */
-$root = realpath(__DIR__ . '/..'); // /ecom
+$root = realpath(__DIR__ . '/..');
 $uploadDirAbs = $root . '/uploads/user_docs';
 if (!is_dir($uploadDirAbs)) {
   @mkdir($uploadDirAbs, 0775, true);
@@ -77,21 +72,18 @@ if (!is_dir($uploadDirAbs) || !is_writable($uploadDirAbs)) {
 }
 
 try {
-  /** Ensure email unique */
-  $st = $pdo->prepare("SELECT id FROM users WHERE email=:e LIMIT 1");
+  $st = $pdo->prepare('SELECT id FROM users WHERE email=:e LIMIT 1');
   $st->execute([':e' => $email]);
   if ($st->fetch()) {
     redirect_back('Email already registered. Please login instead.');
   }
 
-  /** Read users table columns dynamically */
   $cols = [];
-  $q = $pdo->query("SHOW COLUMNS FROM users");
+  $q = $pdo->query('SHOW COLUMNS FROM users');
   while ($r = $q->fetch(PDO::FETCH_ASSOC)) {
     $cols[] = $r['Field'];
   }
 
-  /** Determine password column */
   $passCol = in_array('password_hash', $cols, true) ? 'password_hash' : (in_array('password', $cols, true) ? 'password' : '');
   if ($passCol === '') {
     redirect_back('Users table is missing password column (password or password_hash).');
@@ -99,14 +91,33 @@ try {
 
   $hash = password_hash($pass, PASSWORD_DEFAULT);
 
+  $pdo->beginTransaction();
+
+  $companyAccountId = null;
+  if (in_array('company_account_id', $cols, true)) {
+    $acctSql = "INSERT INTO company_accounts
+      (company_name, account_code, primary_email, primary_phone, account_status, created_at, updated_at)
+      VALUES (:company_name, :account_code, :primary_email, :primary_phone, 'pending_verification', NOW(), NOW())";
+    $acct = $pdo->prepare($acctSql);
+    $acct->execute([
+      ':company_name' => $company,
+      ':account_code' => company_account_code($company),
+      ':primary_email' => $email,
+      ':primary_phone' => $phone,
+    ]);
+    $companyAccountId = (int)$pdo->lastInsertId();
+  }
+
   $insertCols = [];
   $insertVals = [];
   $bind = [];
 
-  if (in_array('name', $cols, true))   { $insertCols[] = 'name';   $insertVals[] = ':name';   $bind[':name'] = $name; }
-  if (in_array('phone', $cols, true))  { $insertCols[] = 'phone';  $insertVals[] = ':phone';  $bind[':phone'] = $phone; }
-  if (in_array('company', $cols, true)){ $insertCols[] = 'company';$insertVals[] = ':company';$bind[':company'] = $company; }
-  if (in_array('email', $cols, true))  { $insertCols[] = 'email';  $insertVals[] = ':email';  $bind[':email'] = $email; }
+  if (in_array('name', $cols, true)) { $insertCols[] = 'name'; $insertVals[] = ':name'; $bind[':name'] = $name; }
+  if (in_array('phone', $cols, true)) { $insertCols[] = 'phone'; $insertVals[] = ':phone'; $bind[':phone'] = $phone; }
+  if (in_array('company', $cols, true)) { $insertCols[] = 'company'; $insertVals[] = ':company'; $bind[':company'] = $company; }
+  if (in_array('email', $cols, true)) { $insertCols[] = 'email'; $insertVals[] = ':email'; $bind[':email'] = $email; }
+  if (in_array('company_account_id', $cols, true)) { $insertCols[] = 'company_account_id'; $insertVals[] = ':company_account_id'; $bind[':company_account_id'] = $companyAccountId; }
+  if (in_array('company_contact_role', $cols, true)) { $insertCols[] = 'company_contact_role'; $insertVals[] = ':company_contact_role'; $bind[':company_contact_role'] = 'primary'; }
 
   $insertCols[] = $passCol;
   $insertVals[] = ':pass';
@@ -117,9 +128,7 @@ try {
     $insertVals[] = 'NOW()';
   }
 
-  $pdo->beginTransaction();
-
-  $sql = "INSERT INTO users (" . implode(',', $insertCols) . ") VALUES (" . implode(',', $insertVals) . ")";
+  $sql = 'INSERT INTO users (' . implode(',', $insertCols) . ') VALUES (' . implode(',', $insertVals) . ')';
   $stmt = $pdo->prepare($sql);
   $stmt->execute($bind);
 
@@ -128,10 +137,22 @@ try {
     throw new RuntimeException('Could not create user.');
   }
 
-  /** Save docs rows */
+  if ($companyAccountId > 0) {
+    $pdo->prepare('UPDATE company_accounts SET created_by = :uid WHERE id = :id')->execute([
+      ':uid' => $userId,
+      ':id' => $companyAccountId,
+    ]);
+
+    $pdo->prepare("INSERT INTO company_account_contacts
+      (company_account_id, user_id, contact_role, is_primary, invite_status, created_at, updated_at)
+      VALUES (:company_account_id, :user_id, 'primary', 1, 'active', NOW(), NOW())")->execute([
+      ':company_account_id' => $companyAccountId,
+      ':user_id' => $userId,
+    ]);
+  }
+
   foreach ($requiredDocs as $input => $docType) {
     $f = $_FILES[$input];
-
     $orig = (string)$f['name'];
     $tmp  = (string)$f['tmp_name'];
     $size = (int)$f['size'];
@@ -166,10 +187,8 @@ try {
 
     $relPath = 'uploads/user_docs/' . $newName;
 
-    $ins = $pdo->prepare("
-      INSERT INTO user_documents (user_id, doc_type, file_path, original_name, mime_type, file_size)
-      VALUES (:uid, :dt, :fp, :on, :mt, :sz)
-    ");
+    $ins = $pdo->prepare("INSERT INTO user_documents (user_id, doc_type, file_path, original_name, mime_type, file_size)
+      VALUES (:uid, :dt, :fp, :on, :mt, :sz)");
     $ins->execute([
       ':uid' => $userId,
       ':dt'  => $docType,
@@ -181,10 +200,11 @@ try {
   }
 
   $pdo->commit();
-  redirect_ok('Signup submitted successfully. Please wait for verification.');
-
+  redirect_ok('Signup submitted successfully. Company account created and pending verification.');
 } catch (Throwable $e) {
-  if ($pdo->inTransaction()) $pdo->rollBack();
-  error_log("Signup submit error: " . $e->getMessage());
-  redirect_back("Signup failed: " . $e->getMessage());
+  if ($pdo->inTransaction()) {
+    $pdo->rollBack();
+  }
+  error_log('Signup submit error: ' . $e->getMessage());
+  redirect_back('Signup failed: ' . $e->getMessage());
 }
